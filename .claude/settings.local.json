@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(npm -v)",
+      "Bash(mysql --version)",
+      "Bash(docker --version)",
+      "Bash(cmd //c \"where mysql 2>&1\")",
+      "Read(//d//**)",
+      "Bash(netstat -ano)",
+      "Bash(\"D:/MySQL/bin/mysql\" --version)",
+      "Bash(find /d -name \"mysql.exe\" -maxdepth 4)",
+      "Bash(\"D:/Docker/docker\" --version)",
+      "Bash(\"D:/Program Files/Docker/docker\" --version)"
+    ]
+  }
+}
