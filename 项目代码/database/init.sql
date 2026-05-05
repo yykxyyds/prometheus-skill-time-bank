@@ -293,11 +293,11 @@ INSERT INTO skill_category (name, icon, sort_order) VALUES
 
 -- 插入管理员账号 (密码: admin123, BCrypt加密)
 INSERT INTO user (id, username, password, email, role, balance, bio) VALUES
-(1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'admin@prometheus.com', 'ADMIN', 9999, '系统管理员');
+(1, 'admin', '$2a$10$NOC9Loma7cBqsM4.rdpA8ukPRVmhn7Hnfr35Dkz3beIHhPzMyVviG', 'admin@prometheus.com', 'ADMIN', 9999, '系统管理员');
 
 -- 插入测试用户 (密码: 123456)
 INSERT INTO user (id, username, password, email, role, balance, bio) VALUES
-(2, 'testuser', '$2a$10$8Un1zPmRJyvxGakNMQ/zruYsiN6Bt8X1pFNZvNNo1XqbIyRcJMHza', 'test@qq.com', 'USER', 20, '测试用户，体验时间银行');
+(2, 'testuser', '$2a$10$nt81daPSNAW0rfMR72Z8XOJb6PfELzUzwApfiIa3Yhb0drL2Y8pjG', 'test@qq.com', 'USER', 20, '测试用户，体验时间银行');
 
 -- 新人礼包流水
 INSERT INTO time_transaction (id, user_id, order_id, type, amount, balance_after, remark) VALUES
