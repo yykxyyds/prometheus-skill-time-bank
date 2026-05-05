@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.prometheus</groupId>
+        <artifactId>skill-time-bank</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>skill-gateway</artifactId>
+    <name>skill-gateway</name>
+    <description>统一入口模块：Spring Boot 启动类、全局配置</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-user-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-skill-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-order-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-wallet-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

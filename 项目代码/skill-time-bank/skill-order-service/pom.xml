@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.prometheus</groupId>
+        <artifactId>skill-time-bank</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>skill-order-service</artifactId>
+    <name>skill-order-service</name>
+    <description>订单模块：下单/交易/聊天</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-user-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>

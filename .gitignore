@@ -21,6 +21,10 @@ Thumbs.db
 # Logs
 *.log
 
+# Python
+pip-cache/
+__pycache__/
+
 # Env
 .env
 .env.local
