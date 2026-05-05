@@ -35,4 +35,8 @@ public class Bounty extends BaseEntity {
 
     /** 中标申请人ID */
     private Long applicantId;
+
+    /** 发布者用户名（联表查询，非数据库字段） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String userName;
 }

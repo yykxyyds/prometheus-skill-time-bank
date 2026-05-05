@@ -1,4 +1,4 @@
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 
 /**
  * 滚动入场动画 composable
@@ -14,37 +14,58 @@ export function useScrollReveal(selector, options = {}) {
   const revealed = ref(false)
 
   let observer = null
+  let mutationObserver = null
 
-  onMounted(() => {
+  function observeElements() {
     const elements = document.querySelectorAll(selector)
     if (!elements.length) return
 
-    observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry, entryIdx) => {
-          if (entry.isIntersecting) {
-            // 计算实际索引（在所有匹配元素中的位置）
-            const allElements = [...document.querySelectorAll(selector)]
-            const idx = allElements.indexOf(entry.target)
-            const delay = idx >= 0 ? idx * stagger : entryIdx * stagger
+    if (!observer) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const allElements = [...document.querySelectorAll(selector)]
+              const idx = allElements.indexOf(entry.target)
+              const delay = idx >= 0 ? idx * stagger : 0
 
-            setTimeout(() => {
-              entry.target.classList.add('revealed')
-            }, delay)
+              setTimeout(() => {
+                entry.target.classList.add('revealed')
+              }, delay)
 
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold, rootMargin }
-    )
+              observer.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold, rootMargin }
+      )
+    }
 
-    elements.forEach((el) => observer.observe(el))
+    elements.forEach((el) => {
+      if (!el.classList.contains('revealed')) {
+        observer.observe(el)
+      }
+    })
     revealed.value = true
+  }
+
+  onMounted(() => {
+    // 首次尝试观察
+    nextTick(() => observeElements())
+
+    // 使用 MutationObserver 监听 DOM 变化（处理异步加载的数据）
+    mutationObserver = new MutationObserver(() => {
+      observeElements()
+    })
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    })
   })
 
   onBeforeUnmount(() => {
     if (observer) observer.disconnect()
+    if (mutationObserver) mutationObserver.disconnect()
   })
 
   return { revealed }

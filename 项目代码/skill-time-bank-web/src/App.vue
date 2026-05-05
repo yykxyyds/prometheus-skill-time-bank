@@ -26,6 +26,9 @@ const router = useRouter()
           </router-link>
 
           <template v-if="userStore.isLoggedIn">
+            <router-link to="/orders/buyer" class="nav-item" active-class="nav-active">
+              <Icon icon="mdi:clipboard-list" class="nav-icon" />我的订单
+            </router-link>
             <router-link to="/wallet" class="nav-item" active-class="nav-active">
               <Icon icon="mdi:bank" class="nav-icon" />时间银行
             </router-link>

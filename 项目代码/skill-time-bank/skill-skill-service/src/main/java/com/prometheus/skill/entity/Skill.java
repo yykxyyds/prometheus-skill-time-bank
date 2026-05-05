@@ -47,4 +47,8 @@ public class Skill extends BaseEntity {
     /** 分类名称（联表查询，非数据库字段） */
     @TableField(exist = false)
     private String categoryName;
+
+    /** 发布者用户名（联表查询，非数据库字段） */
+    @TableField(exist = false)
+    private String userName;
 }

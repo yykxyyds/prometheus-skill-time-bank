@@ -74,6 +74,7 @@ function statusLabel(status) {
         v-for="b in bounties"
         :key="b.id"
         class="bounty-card"
+        @click="$router.push(`/bounty/${b.id}`)"
       >
         <div class="bounty-top">
           <span :class="['bounty-status', statusClass(b.status)]">

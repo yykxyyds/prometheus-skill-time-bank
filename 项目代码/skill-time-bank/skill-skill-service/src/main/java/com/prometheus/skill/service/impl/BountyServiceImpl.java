@@ -30,12 +30,7 @@ public class BountyServiceImpl implements BountyService {
     @Override
     public Page<Bounty> getBountyList(int page, int size, Integer status) {
         Page<Bounty> pageParam = new Page<>(page, size);
-        LambdaQueryWrapper<Bounty> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) {
-            wrapper.eq(Bounty::getStatus, status);
-        }
-        wrapper.orderByDesc(Bounty::getCreateTime);
-        return bountyMapper.selectPage(pageParam, wrapper);
+        return bountyMapper.selectPageWithUser(pageParam, status);
     }
 
     @Override
@@ -183,5 +178,14 @@ public class BountyServiceImpl implements BountyService {
         bountyMapper.updateById(bounty);
 
         log.info("悬赏 {} 已完成，时间币待 order-service 转账", bountyId);
+    }
+
+    @Override
+    public Bounty getBountyDetail(Long id) {
+        Bounty bounty = bountyMapper.selectByIdWithUser(id);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+        return bounty;
     }
 }

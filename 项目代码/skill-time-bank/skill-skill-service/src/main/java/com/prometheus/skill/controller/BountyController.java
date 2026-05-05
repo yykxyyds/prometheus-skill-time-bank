@@ -35,6 +35,14 @@ public class BountyController {
     }
 
     /**
+     * 悬赏详情（无需登录）
+     */
+    @GetMapping("/{id}")
+    public Result<Bounty> detail(@PathVariable Long id) {
+        return Result.success(bountyService.getBountyDetail(id));
+    }
+
+    /**
      * 发布悬赏（需登录）
      */
     @PostMapping

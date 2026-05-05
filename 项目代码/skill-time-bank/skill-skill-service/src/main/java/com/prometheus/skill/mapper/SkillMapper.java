@@ -17,8 +17,9 @@ public interface SkillMapper extends BaseMapper<Skill> {
      * 分页查询上架技能（联表查分类名称）
      */
     @Select("<script>" +
-            "SELECT s.*, c.name AS category_name FROM skill s " +
+            "SELECT s.*, c.name AS category_name, u.username AS user_name FROM skill s " +
             "LEFT JOIN skill_category c ON s.category_id = c.id " +
+            "LEFT JOIN user u ON s.user_id = u.id " +
             "WHERE s.status = 1 " +
             "<if test='categoryId != null and categoryId != 0'>AND s.category_id = #{categoryId}</if>" +
             "<if test='keyword != null and keyword != \"\"'>AND s.title LIKE CONCAT('%',#{keyword},'%')</if>" +

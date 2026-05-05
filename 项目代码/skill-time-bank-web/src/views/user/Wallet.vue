@@ -36,7 +36,21 @@ onMounted(async () => {
   try {
     const repRes = await api.get(`/review/reputation/${userStore.userId}`)
     if (repRes.data) {
-      reputation.value = repRes.data
+      const data = repRes.data
+      // 从雷达数据中解析四维评分
+      const radarMap = {}
+      if (data.radarData && Array.isArray(data.radarData)) {
+        data.radarData.forEach(item => {
+          const nameMap = { '按时交付': 'punctualityScore', '沟通能力': 'communicationScore', '专业水平': 'professionalScore', '服务态度': 'attitudeScore' }
+          if (nameMap[item.tag]) radarMap[nameMap[item.tag]] = item.score
+        })
+      }
+      reputation.value = {
+        punctualityScore: radarMap.punctualityScore || 0,
+        communicationScore: radarMap.communicationScore || 0,
+        professionalScore: radarMap.professionalScore || 0,
+        attitudeScore: radarMap.attitudeScore || 0
+      }
     }
   } catch (e) { /* 新用户可能无数据 */ }
 })

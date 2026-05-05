@@ -23,6 +23,29 @@ const routes = [
     component: () => import('../views/Bounty.vue')
   },
   {
+    path: '/bounty/create',
+    name: 'BountyCreate',
+    meta: { requiresAuth: true },
+    component: () => import('../views/bounty/Create.vue')
+  },
+  {
+    path: '/bounty/:id',
+    name: 'BountyDetail',
+    component: () => import('../views/bounty/Detail.vue')
+  },
+  {
+    path: '/orders/buyer',
+    name: 'BuyerOrders',
+    meta: { requiresAuth: true },
+    component: () => import('../views/order/OrderList.vue')
+  },
+  {
+    path: '/orders/seller',
+    name: 'SellerOrders',
+    meta: { requiresAuth: true },
+    component: () => import('../views/order/OrderList.vue')
+  },
+  {
     path: '/wallet',
     name: 'Wallet',
     meta: { requiresAuth: true },

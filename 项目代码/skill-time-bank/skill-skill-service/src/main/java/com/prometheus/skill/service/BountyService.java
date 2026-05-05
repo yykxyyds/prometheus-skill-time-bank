@@ -37,4 +37,9 @@ public interface BountyService {
      * 确认完成悬赏
      */
     void completeBounty(Long bountyId, Long ownerId);
+
+    /**
+     * 悬赏详情（含发布者用户名）
+     */
+    Bounty getBountyDetail(Long id);
 }
