@@ -16,12 +16,17 @@
 
 ## 拉取项目
 
+> 仓库为私有，需先接受 GitHub 邀请（检查邮箱或 https://github.com/yykxyyds/prometheus-skill-time-bank/invitations）
+
 ```bash
 cd "专门放项目代码的PATH"
-git clone https://github.com/yykxyyds/prometheus-skill-time-bank.git
+git clone git@github.com:yykxyyds/prometheus-skill-time-bank.git
 cd prometheus-skill-time-bank/项目代码
-# 拉取后可以直接打开claude code让它帮你把代码运行起来，就不需要看下面的东西了【下面都是手动操作方法】
 ```
+
+> 没配置 SSH Key 的话用 HTTPS：`git clone https://github.com/yykxyyds/prometheus-skill-time-bank.git`
+
+拉取后可以直接让 Claude Code 帮你把代码跑起来，下面都是手动操作方法。
 
 ## 环境要求
 
@@ -33,13 +38,24 @@ cd prometheus-skill-time-bank/项目代码
 ## 数据库初始化
 
 1. 启动 MySQL 服务
-2. 执行建表脚本：
+
+2. 确认 `application.yml` 中数据库密码与本地一致：
+   - 文件位置：`skill-time-bank/skill-gateway/src/main/resources/application.yml`
+   - 默认 `username: root`，`password: root`，按实际情况修改
+
+3. 执行建表脚本：
 
 ```bash
 mysql -u root -p < database/init.sql
 ```
 
-> 脚本会创建 `prometheus_skill_bank` 数据库、14 张表，并插入初始数据（管理员 + 测试用户 + 8 个技能分类）。
+> 脚本创建 `prometheus_skill_bank` 数据库、14 张表，并插入初始数据（管理员 + 测试用户 + 8 个技能分类）。
+
+4. （可选）导入测试数据，让前端有内容可看：
+
+```bash
+mysql -u root -p prometheus_skill_bank < database/seed_test_data.sql
+```
 
 ## 后端启动
 
@@ -56,6 +72,8 @@ mvn clean package -DskipTests -pl skill-gateway -am
 # 4. 启动（端口 8080）
 java -jar skill-gateway/target/skill-gateway-1.0.0.jar
 ```
+
+> ⚠️ 不要用 `mvn spring-boot:run`，必须用 `java -jar`。
 
 ## 前端启动
 
@@ -132,6 +150,39 @@ npm run dev
 | `GET /api/admin/users`    | 用户管理        | 管理员 |
 
 完整 API 清单见项目根目录 `PROGRESS.md` 第六节。
+
+## 拉取最新代码
+
+```bash
+git pull origin master
+```
+
+如果本地有改动还没 commit，先暂存：
+
+```bash
+git stash
+git pull origin master
+git stash pop
+```
+
+## 常用命令速查
+
+```bash
+# 后端编译
+cd 项目代码/skill-time-bank && mvn clean compile
+
+# 后端打包
+cd 项目代码/skill-time-bank && mvn clean package -DskipTests -pl skill-gateway -am
+
+# 后端运行
+java -jar 项目代码/skill-time-bank/skill-gateway/target/skill-gateway-1.0.0.jar
+
+# 前端运行
+cd 项目代码/skill-time-bank-web && npm run dev
+
+# 数据库连接
+mysql -u root -p -h 127.0.0.1 -P 3306 prometheus_skill_bank
+```
 
 ## 团队
 
