@@ -29,6 +29,9 @@ const router = useRouter()
             <router-link to="/orders/buyer" class="nav-item" active-class="nav-active">
               <Icon icon="mdi:clipboard-list" class="nav-icon" />我的订单
             </router-link>
+            <router-link to="/my-skills" class="nav-item" active-class="nav-active">
+              <Icon icon="mdi:briefcase" class="nav-icon" />我的技能
+            </router-link>
             <router-link to="/wallet" class="nav-item" active-class="nav-active">
               <Icon icon="mdi:bank" class="nav-icon" />时间银行
             </router-link>

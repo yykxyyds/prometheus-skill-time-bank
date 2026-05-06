@@ -1,6 +1,7 @@
 package com.prometheus.order.controller;
 
 import com.prometheus.common.Result;
+import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.order.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ public class OrderController {
         return (Long) request.getAttribute("userId");
     }
 
+    @RequireAuth
     @PostMapping
     public Result<SkillOrder> createOrder(@RequestBody Map<String, Object> body,
                                            HttpServletRequest request) {
@@ -31,6 +33,7 @@ public class OrderController {
         return Result.success(orderService.createOrder(buyerId, sellerId, skillId, amount));
     }
 
+    @RequireAuth
     @PutMapping("/{id}/confirm")
     public Result<Void> confirmOrder(@PathVariable Long id, HttpServletRequest request) {
         Long sellerId = getUserId(request);
@@ -38,6 +41,7 @@ public class OrderController {
         return Result.success();
     }
 
+    @RequireAuth
     @PutMapping("/{id}/buyer-complete")
     public Result<Void> buyerConfirmComplete(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
@@ -45,6 +49,7 @@ public class OrderController {
         return Result.success();
     }
 
+    @RequireAuth
     @PutMapping("/{id}/seller-complete")
     public Result<Void> sellerConfirmComplete(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
@@ -52,6 +57,7 @@ public class OrderController {
         return Result.success();
     }
 
+    @RequireAuth
     @PutMapping("/{id}/cancel")
     public Result<Void> cancelOrder(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
@@ -59,17 +65,20 @@ public class OrderController {
         return Result.success();
     }
 
+    @RequireAuth
     @GetMapping("/{id}")
     public Result<SkillOrder> getOrderDetail(@PathVariable Long id) {
         return Result.success(orderService.getOrderDetail(id));
     }
 
+    @RequireAuth
     @GetMapping("/buyer")
     public Result<List<SkillOrder>> getBuyerOrders(HttpServletRequest request) {
         Long buyerId = getUserId(request);
         return Result.success(orderService.getBuyerOrders(buyerId));
     }
 
+    @RequireAuth
     @GetMapping("/seller")
     public Result<List<SkillOrder>> getSellerOrders(HttpServletRequest request) {
         Long sellerId = getUserId(request);

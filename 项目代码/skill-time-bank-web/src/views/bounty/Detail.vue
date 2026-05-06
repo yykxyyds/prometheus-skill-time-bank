@@ -34,6 +34,25 @@ const statusInfo = computed(() => statusMap[bounty.value.status] || statusMap[4]
 const isOwner = computed(() => userStore.isLoggedIn && userStore.userId === bounty.value.userId)
 const canApply = computed(() => userStore.isLoggedIn && bounty.value.status === 1 && !isOwner.value)
 
+const applications = ref([])
+const loadingApps = ref(false)
+const showApps = ref(false)
+
+async function loadApplications() {
+  loadingApps.value = true
+  showApps.value = !showApps.value
+  if (!showApps.value) return
+  try {
+    // applications are embedded in bounty detail or via dedicated endpoint
+    // currently using the bounty data which may include applications
+    const res = await api.get(`/bounty/${bounty.value.id}`)
+    bounty.value = res.data || {}
+    applications.value = bounty.value.applications || []
+  } catch (e) { /* handled */ } finally {
+    loadingApps.value = false
+  }
+}
+
 async function handleApply() {
   if (!applyMsg.value.trim()) {
     ElMessage.warning('请填写申请留言')
@@ -46,6 +65,34 @@ async function handleApply() {
     applyMsg.value = ''
   } catch (e) { /* handled */ }
   finally { applying.value = false }
+}
+
+async function handleAccept(appId) {
+  try {
+    await api.put(`/bounty/${bounty.value.id}/accept/${appId}`)
+    ElMessage.success('已接受申请')
+    const res = await api.get(`/bounty/${bounty.value.id}`)
+    bounty.value = res.data || {}
+    showApps.value = false
+  } catch (e) { /* handled */ }
+}
+
+async function handleReject(appId) {
+  try {
+    await api.put(`/bounty/${bounty.value.id}/reject/${appId}`)
+    ElMessage.success('已拒绝申请')
+    const res = await api.get(`/bounty/${bounty.value.id}`)
+    bounty.value = res.data || {}
+  } catch (e) { /* handled */ }
+}
+
+async function handleComplete() {
+  try {
+    await api.put(`/bounty/${bounty.value.id}/complete`)
+    ElMessage.success('悬赏已完成')
+    const res = await api.get(`/bounty/${bounty.value.id}`)
+    bounty.value = res.data || {}
+  } catch (e) { /* handled */ }
 }
 </script>
 
@@ -88,6 +135,33 @@ async function handleApply() {
           <div class="content-card">
             <h3>需求描述</h3>
             <p class="desc-text">{{ bounty.description || '暂无详细描述' }}</p>
+          </div>
+
+          <!-- 发布者管理 -->
+          <div class="content-card" v-if="isOwner && bounty.status === 1">
+            <h3>管理悬赏</h3>
+            <div class="owner-actions">
+              <button class="btn-primary" @click="loadApplications">
+                <Icon icon="mdi:format-list-bulleted" /> 查看申请列表
+              </button>
+              <button class="btn-success" @click="handleComplete" v-if="bounty.status === 2">
+                <Icon icon="mdi:check-circle" /> 确认完成
+              </button>
+            </div>
+            <div class="app-list" v-if="showApps && applications.length > 0" v-loading="loadingApps">
+              <div v-for="app in applications" :key="app.id" class="app-item">
+                <div class="app-info">
+                  <span class="app-user">申请人 #{{ app.userId }}</span>
+                  <span class="app-msg">{{ app.message }}</span>
+                  <span class="app-time">{{ app.createTime }}</span>
+                </div>
+                <div class="app-actions" v-if="bounty.status === 1">
+                  <button class="btn-sm primary" @click="handleAccept(app.id)">接受</button>
+                  <button class="btn-sm danger" @click="handleReject(app.id)">拒绝</button>
+                </div>
+              </div>
+            </div>
+            <el-empty v-if="showApps && applications.length === 0 && !loadingApps" description="暂无申请" :image-size="60" />
           </div>
 
           <!-- 申请表单 -->
@@ -238,6 +312,108 @@ async function handleApply() {
   box-shadow: 0 4px 16px rgba(232, 120, 74, 0.35);
 }
 .apply-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* Owner actions */
+.owner-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.btn-primary {
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 14px rgba(232, 120, 74, 0.3);
+}
+.btn-success {
+  padding: 9px 18px;
+  background: #67c23a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-success:hover {
+  background: #5daf34;
+}
+.app-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.app-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: #fdf9f6;
+  border-radius: 10px;
+  border: 1px solid #f0e8e0;
+}
+.app-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-user {
+  font-weight: 600;
+  color: #e8784a;
+  font-size: 14px;
+}
+.app-msg {
+  font-size: 13px;
+  color: #666;
+}
+.app-time {
+  font-size: 11px;
+  color: #bbb;
+}
+.app-actions {
+  display: flex;
+  gap: 6px;
+}
+.btn-sm {
+  padding: 4px 14px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #fff;
+}
+.btn-sm.primary {
+  color: #67c23a;
+  border-color: #c2e7b0;
+}
+.btn-sm.primary:hover {
+  background: #f0f9eb;
+}
+.btn-sm.danger {
+  color: #f56c6c;
+  border-color: #fde2e2;
+}
+.btn-sm.danger:hover {
+  background: #fef0f0;
+}
+
 .apply-card.closed {
   color: #999;
   text-align: center;

@@ -2,6 +2,7 @@ package com.prometheus.skill.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.prometheus.common.Result;
+import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.skill.entity.Bounty;
 import com.prometheus.skill.service.BountyService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +46,7 @@ public class BountyController {
     /**
      * 发布悬赏（需登录）
      */
+    @RequireAuth
     @PostMapping
     public Result<String> publish(@RequestBody Bounty bounty) {
         Long userId = getCurrentUserId();
@@ -56,6 +58,7 @@ public class BountyController {
     /**
      * 申请接悬赏（需登录）
      */
+    @RequireAuth
     @PostMapping("/{id}/apply")
     public Result<String> apply(@PathVariable Long id, @RequestBody Map<String, String> body) {
         Long userId = getCurrentUserId();
@@ -67,6 +70,7 @@ public class BountyController {
     /**
      * 接受申请（需登录，仅悬赏发布者）
      */
+    @RequireAuth
     @PutMapping("/{id}/accept/{applicationId}")
     public Result<String> accept(@PathVariable Long id, @PathVariable Long applicationId) {
         Long userId = getCurrentUserId();
@@ -77,6 +81,7 @@ public class BountyController {
     /**
      * 拒绝申请（需登录，仅悬赏发布者）
      */
+    @RequireAuth
     @PutMapping("/{id}/reject/{applicationId}")
     public Result<String> reject(@PathVariable Long id, @PathVariable Long applicationId) {
         Long userId = getCurrentUserId();
@@ -87,6 +92,7 @@ public class BountyController {
     /**
      * 确认完成悬赏（需登录，仅悬赏发布者）
      */
+    @RequireAuth
     @PutMapping("/{id}/complete")
     public Result<String> complete(@PathVariable Long id) {
         Long userId = getCurrentUserId();

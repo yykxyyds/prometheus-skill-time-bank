@@ -1,6 +1,7 @@
 package com.prometheus.order.controller;
 
 import com.prometheus.common.Result;
+import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.order.entity.ChatMessage;
 import com.prometheus.order.service.ChatService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ public class ChatController {
         return (Long) request.getAttribute("userId");
     }
 
+    @RequireAuth
     @GetMapping("/order/{orderId}")
     public Result<List<ChatMessage>> getMessages(@PathVariable Long orderId,
                                                   HttpServletRequest request) {
@@ -28,6 +30,7 @@ public class ChatController {
         return Result.success(chatService.getMessages(orderId, userId));
     }
 
+    @RequireAuth
     @PostMapping("/order/{orderId}")
     public Result<ChatMessage> sendMessage(@PathVariable Long orderId,
                                             @RequestBody Map<String, String> body,

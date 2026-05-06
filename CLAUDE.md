@@ -74,7 +74,7 @@ cd 项目代码/skill-time-bank-web && npm run dev
 - 库名: `prometheus_skill_bank`，共 14 张表
 - 建表脚本: `项目代码/database/init.sql`
 - 初始数据：管理员 admin/admin123、3个测试用户、8 个技能分类
-- **注意：init.sql 仅有基础数据，技能/订单/悬赏/评价等业务表初始为空**。若前端空荡荡需插入测试数据
+- 测试数据脚本：`项目代码/database/seed_demo.sql`（演示用）、`seed_test_data.sql`（较完整测试数据）。**init.sql 仅有基础数据**，业务表（技能/订单/悬赏/评价等）初始为空，需执行 seed 脚本才能在页面看到交互效果
 - 连接URL: `jdbc:mysql://localhost:3306/prometheus_skill_bank?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai`
 
 ```bash
@@ -88,13 +88,16 @@ cd 项目代码/skill-time-bank-web && npm run dev
 skill-time-bank-web/src/
 ├── api/                # Axios 封装 + 按模块的 API 调用（index.js / user.js / skill.js）
 ├── stores/user.js      # Pinia store：token, userId, username, role, balance
-├── router/index.js     # 11 条路由，beforeEach 做 auth + admin 守卫
+├── composables/        # 可复用组合式函数（useScrollReveal.js 滚动动画）
+├── router/index.js     # 17 条路由，beforeEach 做 auth + admin 守卫
 ├── views/
 │   ├── Home.vue        # 技能广场（首页）
 │   ├── Login.vue       # 登录/注册
 │   ├── SkillDetail.vue # 技能详情
 │   ├── Bounty.vue      # 需求悬赏列表
-│   ├── user/           # Wallet, Profile, MySkills
+│   ├── bounty/         # Create.vue（发布悬赏）, Detail.vue（悬赏详情）
+│   ├── order/          # OrderList.vue（买方/卖方订单列表）, Detail.vue（订单详情+聊天+评价）
+│   ├── user/           # Wallet, Profile, MySkills, Appeal（申诉提交）
 │   └── admin/          # Users, Appeals, Announcements
 ├── App.vue
 ├── main.js
@@ -111,8 +114,9 @@ skill-time-bank-web/src/
 
 ### JWT 认证机制
 - 不是 Spring Security 过滤器链，而是自定义 `@RequireAuth` 注解
-- Gateway 通过 `WebMvcConfigurer` 注册拦截器，拦截所有请求
+- `skill-gateway/config/WebMvcConfig` 统一注册 `UserAuthInterceptor`，拦截所有 `/api/**` 请求
 - 公开接口用 `@RequireAuth(required = false)` 标记
+- 拦截器始终解析 token（有则设 userId，无则跳过），具体强制登录由注解控制
 - JWT 工具类在 `skill-common` 的 `JwtUtil`
 
 ### 统一响应格式
@@ -218,7 +222,7 @@ POST/DELETE /api/announcement
 | 5 | 答辩PPT | `.pptx` | ❌ |
 | 6 | 演示视频 | 视频 | ❌ |
 | 7 | 部署说明文档 | 文档 | ❌ |
-| 8 | 项目代码 + SQL + README | 代码/文档 | ⚠️ 缺 README |
+| 8 | 项目代码 + SQL + README | 代码/文档 | ✅ |
 
 ## 自检验证规范
 

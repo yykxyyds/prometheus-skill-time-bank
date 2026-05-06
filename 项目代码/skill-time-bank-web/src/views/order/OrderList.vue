@@ -25,8 +25,8 @@ async function loadOrders() {
   loading.value = true
   try {
     const endpoint = isBuyer.value ? '/order/buyer' : '/order/seller'
-    const res = await api.get(endpoint, { params: { page: 1, size: 50 } })
-    orders.value = res.data?.records || []
+    const res = await api.get(endpoint)
+    orders.value = res.data || []
   } catch (e) { /* handled */ } finally {
     loading.value = false
   }
@@ -44,6 +44,10 @@ const filteredOrders = computed(() => {
   if (!statusFilter.value) return orders.value
   return orders.value.filter(o => o.status === statusFilter.value)
 })
+
+function viewDetail(order) {
+  router.push(`/order/${order.id}`)
+}
 
 async function handleAction(order, action) {
   try {
@@ -100,7 +104,7 @@ async function handleAction(order, action) {
       <el-empty v-if="!loading && filteredOrders.length === 0" description="暂无订单" :image-size="100" />
 
       <div v-else class="order-list">
-        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+        <div v-for="order in filteredOrders" :key="order.id" class="order-card" @click="viewDetail(order)">
           <div class="order-top">
             <span class="order-no">#{{ order.orderNo }}</span>
             <el-tag :type="statusMap[order.status]?.tag || 'info'" size="small">
@@ -127,23 +131,23 @@ async function handleAction(order, action) {
             <!-- 买方: 待确认 → 无操作，等待卖方确认 -->
             <!-- 卖方: 待确认 → 确认接单 / 取消 -->
             <template v-if="order.status === 1">
-              <button v-if="!isBuyer" class="btn-primary" @click="handleAction(order, 'confirm')">确认接单</button>
-              <button v-if="!isBuyer" class="btn-cancel" @click="handleAction(order, 'cancel')">拒绝</button>
-              <button v-if="isBuyer" class="btn-cancel" @click="handleAction(order, 'cancel')">取消订单</button>
+              <button v-if="!isBuyer" class="btn-primary" @click.stop="handleAction(order, 'confirm')">确认接单</button>
+              <button v-if="!isBuyer" class="btn-cancel" @click.stop="handleAction(order, 'cancel')">拒绝</button>
+              <button v-if="isBuyer" class="btn-cancel" @click.stop="handleAction(order, 'cancel')">取消订单</button>
             </template>
 
             <!-- 进行中 → 双方都可以确认完成 -->
             <template v-if="order.status === 2">
-              <button v-if="isBuyer && !order.buyerConfirm" class="btn-primary" @click="handleAction(order, 'buyer-complete')">确认完成</button>
-              <button v-if="!isBuyer && !order.sellerConfirm" class="btn-primary" @click="handleAction(order, 'seller-complete')">确认完成</button>
+              <button v-if="isBuyer && !order.buyerConfirm" class="btn-primary" @click.stop="handleAction(order, 'buyer-complete')">确认完成</button>
+              <button v-if="!isBuyer && !order.sellerConfirm" class="btn-primary" @click.stop="handleAction(order, 'seller-complete')">确认完成</button>
               <span v-if="isBuyer && order.buyerConfirm" class="confirmed-hint">已确认，等待对方</span>
               <span v-if="!isBuyer && order.sellerConfirm" class="confirmed-hint">已确认，等待对方</span>
             </template>
 
             <!-- 待确认完成 → 未确认方确认 -->
             <template v-if="order.status === 3">
-              <button v-if="isBuyer && !order.buyerConfirm" class="btn-primary" @click="handleAction(order, 'buyer-complete')">确认完成</button>
-              <button v-if="!isBuyer && !order.sellerConfirm" class="btn-primary" @click="handleAction(order, 'seller-complete')">确认完成</button>
+              <button v-if="isBuyer && !order.buyerConfirm" class="btn-primary" @click.stop="handleAction(order, 'buyer-complete')">确认完成</button>
+              <button v-if="!isBuyer && !order.sellerConfirm" class="btn-primary" @click.stop="handleAction(order, 'seller-complete')">确认完成</button>
               <span v-if="isBuyer && order.buyerConfirm" class="confirmed-hint">已确认，等待对方</span>
               <span v-if="!isBuyer && order.sellerConfirm" class="confirmed-hint">已确认，等待对方</span>
             </template>

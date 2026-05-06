@@ -2,6 +2,7 @@ package com.prometheus.skill.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.prometheus.common.Result;
+import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.skill.entity.Skill;
 import com.prometheus.skill.service.SkillService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +47,7 @@ public class SkillController {
     /**
      * 发布技能（需登录）
      */
+    @RequireAuth
     @PostMapping
     public Result<String> publish(@RequestBody Skill skill) {
         Long userId = getCurrentUserId();
@@ -57,6 +59,7 @@ public class SkillController {
     /**
      * 更新技能（需登录）
      */
+    @RequireAuth
     @PutMapping
     public Result<String> update(@RequestBody Skill skill) {
         Long userId = getCurrentUserId();
@@ -68,6 +71,7 @@ public class SkillController {
     /**
      * 下架技能（需登录）
      */
+    @RequireAuth
     @PutMapping("/{id}/offline")
     public Result<String> offline(@PathVariable Long id) {
         Long userId = getCurrentUserId();
@@ -78,6 +82,7 @@ public class SkillController {
     /**
      * 我的技能列表（需登录）
      */
+    @RequireAuth
     @GetMapping("/my")
     public Result<Page<Skill>> mySkills(@RequestParam(name = "page", defaultValue = "1") int page,
                                         @RequestParam(name = "size", defaultValue = "10") int size) {

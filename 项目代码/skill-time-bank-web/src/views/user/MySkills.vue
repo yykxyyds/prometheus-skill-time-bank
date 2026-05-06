@@ -21,7 +21,7 @@ onMounted(async () => {
       getMySkills(),
       getCategories()
     ])
-    skills.value = skillRes.data || []
+    skills.value = skillRes.data?.records || []
     categories.value = catRes.data || []
   } finally {
     loading.value = false

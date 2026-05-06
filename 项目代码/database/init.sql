@@ -103,6 +103,7 @@ CREATE TABLE `bounty_application` (
     `message` VARCHAR(500) DEFAULT NULL COMMENT '申请留言',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1待确认 2已接受 3已拒绝',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_bounty_applicant` (`bounty_id`, `applicant_id`),
     KEY `idx_bounty_id` (`bounty_id`),
@@ -188,6 +189,7 @@ CREATE TABLE `notification` (
     `target_id` BIGINT DEFAULT NULL COMMENT '关联目标ID',
     `is_read` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0未读 1已读',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     KEY `idx_user_read` (`user_id`, `is_read`),
     KEY `idx_create_time` (`create_time`)
@@ -238,6 +240,7 @@ CREATE TABLE `user_follow` (
     `follower_id` BIGINT NOT NULL COMMENT '关注者用户ID',
     `following_id` BIGINT NOT NULL COMMENT '被关注者用户ID',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_follower_following` (`follower_id`, `following_id`),
     KEY `idx_following_id` (`following_id`)
@@ -254,6 +257,7 @@ CREATE TABLE `chat_message` (
     `message_type` VARCHAR(20) NOT NULL DEFAULT 'TEXT' COMMENT '消息类型: TEXT/IMAGE/FILE',
     `is_read` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0未读 1已读',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     KEY `idx_order_id` (`order_id`),
     KEY `idx_sender` (`sender_id`),

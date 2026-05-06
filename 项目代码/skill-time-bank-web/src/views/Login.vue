@@ -26,7 +26,7 @@ async function submit() {
     const api = isLogin.value ? login : register
     const res = await api(form.value)
     userStore.setUser(res.data)
-    ElMessage.success(isLogin.value ? '欢迎回来！' : '注册成功，赠送 20 时间币')
+    ElMessage.success(isLogin.value ? '欢迎回来！' : '注册成功，赠送 100 时间币')
     router.push('/')
   } finally {
     loading.value = false

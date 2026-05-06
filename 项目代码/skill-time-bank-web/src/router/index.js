@@ -46,6 +46,18 @@ const routes = [
     component: () => import('../views/order/OrderList.vue')
   },
   {
+    path: '/order/:id',
+    name: 'OrderDetail',
+    meta: { requiresAuth: true },
+    component: () => import('../views/order/Detail.vue')
+  },
+  {
+    path: '/appeal/create',
+    name: 'AppealCreate',
+    meta: { requiresAuth: true },
+    component: () => import('../views/user/Appeal.vue')
+  },
+  {
     path: '/wallet',
     name: 'Wallet',
     meta: { requiresAuth: true },
