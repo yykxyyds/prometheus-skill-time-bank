@@ -27,7 +27,7 @@ async function submit() {
       title: form.value.title,
       description: form.value.description,
       reward: form.value.reward,
-      deadline: form.value.deadline ? form.value.deadline + ' 23:59:59' : null
+      deadline: form.value.deadline ? form.value.deadline + 'T23:59:59' : null
     })
     ElMessage.success('悬赏发布成功！')
     router.push('/bounty')

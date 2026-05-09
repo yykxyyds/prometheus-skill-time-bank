@@ -12,7 +12,8 @@ const router = useRouter()
 const userStore = useUserStore()
 const skill = ref({})
 const loading = ref(false)
-const orderAmount = ref(1)
+const orderForm = ref({ hours: 1, phone: '', appointmentTime: '', appointmentLocation: '', plan: '' })
+const ordering = ref(false)
 
 onMounted(async () => {
   loading.value = true
@@ -26,24 +27,32 @@ onMounted(async () => {
 
 async function handleOrder() {
   if (!userStore.isLoggedIn) {
-    router.push('/login')
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
     return
   }
   if (skill.value.userId === userStore.userId) {
     ElMessage.warning('不能购买自己的技能')
     return
   }
+  if (!orderForm.value.phone) {
+    ElMessage.warning('请填写联系电话')
+    return
+  }
+  ordering.value = true
   try {
     await api.post('/order', {
       sellerId: skill.value.userId,
       skillId: skill.value.id,
-      amount: skill.value.price * orderAmount.value
+      amount: skill.value.price * orderForm.value.hours,
+      contactPhone: orderForm.value.phone,
+      appointmentTime: orderForm.value.appointmentTime,
+      appointmentLocation: orderForm.value.appointmentLocation,
+      plan: orderForm.value.plan
     })
     ElMessage.success('下单成功！')
     router.push('/wallet')
-  } catch (e) {
-    // handled by interceptor
-  }
+  } catch (e) { /* handled */ }
+  finally { ordering.value = false }
 }
 </script>
 
@@ -108,26 +117,40 @@ async function handleOrder() {
               <span class="price-unit">时间币 / 小时</span>
             </div>
 
-            <div class="quantity-row" v-if="skill.status === 1">
-              <label>服务时长</label>
-              <div class="qty-control">
-                <button @click="orderAmount = Math.max(1, orderAmount - 1)">-</button>
-                <span>{{ orderAmount }}</span>
-                <button @click="orderAmount = orderAmount + 1">+</button>
+            <div class="order-form" v-if="skill.status === 1">
+              <div class="form-row">
+                <label>联系电话 <span class="req">*</span></label>
+                <input v-model="orderForm.phone" type="tel" placeholder="手机号" class="form-input" />
+              </div>
+              <div class="form-row">
+                <label>预约时间</label>
+                <input v-model="orderForm.appointmentTime" type="text" placeholder="例如：周三 19:00-21:00" class="form-input" />
+              </div>
+              <div class="form-row">
+                <label>预约地点</label>
+                <input v-model="orderForm.appointmentLocation" type="text" placeholder="例如：图书馆3楼研讨室" class="form-input" />
+              </div>
+              <div class="form-row">
+                <label>计划安排</label>
+                <textarea v-model="orderForm.plan" placeholder="简要描述你的学习计划或想解决的问题..." rows="2" class="form-input"></textarea>
+              </div>
+              <div class="form-row">
+                <label>服务时长</label>
+                <div class="qty-control">
+                  <button @click="orderForm.hours = Math.max(1, orderForm.hours - 1)">-</button>
+                  <span>{{ orderForm.hours }}</span>
+                  <button @click="orderForm.hours = orderForm.hours + 1">+</button>
+                </div>
               </div>
             </div>
 
             <div class="total-row">
               <span>合计</span>
-              <span class="total-price">{{ skill.price * orderAmount }} 时间币</span>
+              <span class="total-price">{{ skill.price * orderForm.hours }} 时间币</span>
             </div>
 
-            <button
-              class="order-btn"
-              :disabled="skill.status !== 1"
-              @click="handleOrder"
-            >
-              {{ skill.status === 1 ? '立即预约' : '已下架' }}
+            <button class="order-btn" :disabled="skill.status !== 1 || ordering" @click="handleOrder">
+              {{ ordering ? '提交中...' : (skill.status === 1 ? '提交预约' : '已下架') }}
             </button>
 
             <p class="order-note">预约后时间币将被冻结，双方确认完成后转账</p>
@@ -386,5 +409,45 @@ async function handleOrder() {
   color: #bbb;
   margin: 12px 0 0;
   line-height: 1.5;
+}
+
+/* ========== 预约表单 ========== */
+.order-form {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f5f0eb;
+  margin-bottom: 16px;
+}
+.order-form .form-row {
+  margin-bottom: 12px;
+}
+.order-form .form-row label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 4px;
+}
+.order-form .form-row .req {
+  color: #f56c6c;
+}
+.form-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e8e0d8;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  background: #fafafa;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.form-input:focus {
+  border-color: #e8784a;
+  background: #fff;
+}
+textarea.form-input {
+  resize: vertical;
 }
 </style>

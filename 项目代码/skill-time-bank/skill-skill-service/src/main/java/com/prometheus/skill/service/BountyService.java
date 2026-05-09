@@ -9,9 +9,12 @@ import com.prometheus.skill.entity.Bounty;
 public interface BountyService {
 
     /**
-     * 悬赏列表（分页+按状态筛选）
+     * 悬赏列表（分页+按状态+按类型筛选）
+     *
+     * @param type   筛选类型：null-全部, "publish"-我发布的, "take"-我接的, "complete"-我完成的
+     * @param userId 当前用户 ID（type 不为 null 时必填）
      */
-    Page<Bounty> getBountyList(int page, int size, Integer status);
+    Page<Bounty> getBountyList(int page, int size, Integer status, String type, Long userId);
 
     /**
      * 发布悬赏

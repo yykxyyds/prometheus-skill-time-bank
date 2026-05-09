@@ -33,6 +33,7 @@ const statusMap = {
 const statusInfo = computed(() => statusMap[bounty.value.status] || statusMap[4])
 const isOwner = computed(() => userStore.isLoggedIn && userStore.userId === bounty.value.userId)
 const canApply = computed(() => userStore.isLoggedIn && bounty.value.status === 1 && !isOwner.value)
+const showApplyForm = computed(() => bounty.value.status === 1 && !isOwner.value)
 
 const applications = ref([])
 const loadingApps = ref(false)
@@ -54,6 +55,10 @@ async function loadApplications() {
 }
 
 async function handleApply() {
+  if (!userStore.isLoggedIn) {
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+    return
+  }
   if (!applyMsg.value.trim()) {
     ElMessage.warning('请填写申请留言')
     return
@@ -165,7 +170,7 @@ async function handleComplete() {
           </div>
 
           <!-- 申请表单 -->
-          <div class="apply-card" v-if="canApply">
+          <div class="apply-card" v-if="showApplyForm">
             <h3>申请接单</h3>
             <el-input
               v-model="applyMsg"
@@ -176,7 +181,7 @@ async function handleComplete() {
               show-word-limit
             />
             <button class="apply-btn" :disabled="applying" @click="handleApply" style="margin-top:12px">
-              {{ applying ? '提交中...' : '提交申请' }}
+              {{ applying ? '提交中...' : (userStore.isLoggedIn ? '提交申请' : '请先登录') }}
             </button>
           </div>
 

@@ -107,15 +107,15 @@ async function handleOffline(id) {
         <el-table-column prop="orderCount" label="订单" width="80" align="center" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <span class="row-status" :class="row.status === 1 ? 'on' : 'off'">
-              {{ row.status === 1 ? '上架' : '下架' }}
+            <span class="row-status" :class="row.status === 1 ? 'on' : row.status === 2 ? 'pending' : 'off'">
+              {{ row.status === 1 ? '上架' : row.status === 2 ? '待审核' : '下架' }}
             </span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center">
           <template #default="{ row }">
             <button class="action-btn edit" @click="openEdit(row)">编辑</button>
-            <button v-if="row.status === 1" class="action-btn danger" @click="handleOffline(row.id)">下架</button>
+            <button v-if="row.status === 1 || row.status === 2" class="action-btn danger" @click="handleOffline(row.id)">下架</button>
           </template>
         </el-table-column>
       </el-table>
@@ -240,6 +240,7 @@ async function handleOffline(id) {
   border-radius: 4px;
 }
 .row-status.on { background: #e8f5e9; color: #4caf50; }
+.row-status.pending { background: #fff7e6; color: #e6a23c; }
 .row-status.off { background: #f5f5f5; color: #999; }
 
 .action-btn {

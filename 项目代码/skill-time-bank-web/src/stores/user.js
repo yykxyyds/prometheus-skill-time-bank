@@ -9,9 +9,7 @@ export const useUserStore = defineStore('user', () => {
   const balance = ref(Number(localStorage.getItem('balance') || '0'))
 
   const isLoggedIn = computed(() => !!token.value)
-  const isAdmin = computed(() => role.value === 'ADMIN')
-
-  function setUser(data) {
+function setUser(data) {
     token.value = data.token
     userId.value = data.userId
     username.value = data.username
@@ -33,5 +31,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.clear()
   }
 
-  return { token, userId, username, role, balance, isLoggedIn, isAdmin, setUser, logout }
+  return { token, userId, username, role, balance, isLoggedIn, setUser, logout }
 })

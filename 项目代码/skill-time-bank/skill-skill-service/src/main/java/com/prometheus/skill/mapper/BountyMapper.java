@@ -15,15 +15,22 @@ public interface BountyMapper extends BaseMapper<Bounty> {
 
     /**
      * 分页查询悬赏（联表查用户名）
+     *
+     * @param type   筛选类型：null-全部, "publish"-我发布的, "take"-我接的, "complete"-我完成的
+     * @param userId 当前登录用户 ID（type 不为 null 时必填）
      */
     @Select("<script>" +
             "SELECT b.*, u.username AS user_name FROM bounty b " +
             "LEFT JOIN user u ON b.user_id = u.id " +
             "WHERE 1=1 " +
             "<if test='status != null'>AND b.status = #{status}</if>" +
+            "<if test='type == \"publish\"'>AND b.user_id = #{userId}</if>" +
+            "<if test='type == \"take\"'>AND b.applicant_id = #{userId}</if>" +
+            "<if test='type == \"complete\"'>AND b.status = 3 AND (b.user_id = #{userId} OR b.applicant_id = #{userId})</if>" +
             "ORDER BY b.create_time DESC" +
             "</script>")
-    Page<Bounty> selectPageWithUser(Page<Bounty> page, @Param("status") Integer status);
+    Page<Bounty> selectPageWithUser(Page<Bounty> page, @Param("status") Integer status,
+                                   @Param("type") String type, @Param("userId") Long userId);
 
     @Select("SELECT b.*, u.username AS user_name FROM bounty b " +
             "LEFT JOIN user u ON b.user_id = u.id " +

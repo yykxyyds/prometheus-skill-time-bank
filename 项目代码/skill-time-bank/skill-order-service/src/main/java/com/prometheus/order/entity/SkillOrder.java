@@ -18,6 +18,10 @@ public class SkillOrder extends BaseEntity {
     private Long bountyId;
     private Integer amount;
     private Integer frozenAmount;
+    private String contactPhone;
+    private String appointmentTime;
+    private String appointmentLocation;
+    private String plan;
     private Integer status;
     private Integer buyerConfirm;
     private Integer sellerConfirm;

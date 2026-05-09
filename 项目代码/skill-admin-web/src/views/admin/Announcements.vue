@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '../../api/index'
+import api from '../../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const announcements = ref([])
@@ -37,10 +37,10 @@ function openEdit(item) {
 
 async function handleSave() {
   if (isEdit.value) {
-    await api.put('/announcement', form.value)
+    await api.put('/admin/announcement', form.value)
     ElMessage.success('已更新')
   } else {
-    await api.post('/announcement', form.value)
+    await api.post('/admin/announcement', form.value)
     ElMessage.success('发布成功')
   }
   showDialog.value = false
@@ -49,14 +49,14 @@ async function handleSave() {
 
 async function handleDelete(id) {
   await ElMessageBox.confirm('确定删除该公告？', '提示', { type: 'warning' })
-  await api.delete(`/announcement/${id}`)
+  await api.delete(`/admin/announcement/${id}`)
   ElMessage.success('已删除')
   await loadData()
 }
 </script>
 
 <template>
-  <div class="admin-page">
+  <div>
     <div class="page-header">
       <div>
         <h2>公告管理</h2>
@@ -65,10 +65,8 @@ async function handleDelete(id) {
       <button class="publish-btn" @click="openCreate">发布公告</button>
     </div>
 
-    <!-- 公告卡片列表 -->
     <div class="announce-list" v-loading="loading">
       <el-empty v-if="!loading && announcements.length === 0" description="暂无公告" :image-size="80" />
-
       <article v-for="item in announcements" :key="item.id" class="announce-card">
         <div class="announce-left">
           <h3>
@@ -85,7 +83,6 @@ async function handleDelete(id) {
       </article>
     </div>
 
-    <!-- 弹窗 -->
     <el-dialog v-model="showDialog" :title="isEdit ? '编辑公告' : '发布公告'" width="520px" destroy-on-close>
       <div class="dialog-form">
         <div class="form-row">
@@ -109,123 +106,24 @@ async function handleDelete(id) {
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-.page-header h2 {
-  font-size: 26px;
-  font-weight: 700;
-  color: #2c3e50;
-  margin: 0 0 4px;
-}
-.page-header p {
-  font-size: 14px;
-  color: #999;
-  margin: 0;
-}
-.publish-btn {
-  padding: 10px 22px;
-  background: linear-gradient(135deg, #e8784a, #f0a060);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: 0.3px;
-  transition: all 0.3s;
-}
-.publish-btn:hover {
-  box-shadow: 0 4px 14px rgba(232,120,74,0.3);
-  transform: translateY(-1px);
-}
-
-/* 公告卡片 */
-.announce-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.announce-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 22px 24px;
-  border: 1px solid #f0e8e0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  transition: all 0.3s;
-}
-.announce-card:hover {
-  border-color: rgba(232,120,74,0.2);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.04);
-}
-.announce-left {
-  flex: 1;
-  min-width: 0;
-}
-.announce-left h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.top-badge {
-  font-size: 11px;
-  background: #e8784a;
-  color: #fff;
-  padding: 1px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.announce-content {
-  font-size: 14px;
-  color: #888;
-  line-height: 1.6;
-  margin: 0 0 8px;
-}
-.announce-time {
-  font-size: 12px;
-  color: #bbb;
-}
-.announce-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.action-btn {
-  padding: 5px 14px;
-  border: 1px solid;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #fff;
-  font-weight: 500;
-}
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.page-header h2 { font-size: 24px; font-weight: 700; color: #2c3e50; margin: 0 0 4px; }
+.page-header p { font-size: 14px; color: #999; margin: 0; }
+.publish-btn { padding: 10px 22px; background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+.publish-btn:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3); transform: translateY(-1px); }
+.announce-list { display: flex; flex-direction: column; gap: 12px; }
+.announce-card { background: #fff; border-radius: 14px; padding: 22px 24px; border: 1px solid #f0e8e0; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.announce-left { flex: 1; min-width: 0; }
+.announce-left h3 { font-size: 16px; font-weight: 600; color: #2c3e50; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.top-badge { font-size: 11px; background: #6366f1; color: #fff; padding: 1px 8px; border-radius: 4px; font-weight: 600; }
+.announce-content { font-size: 14px; color: #888; line-height: 1.6; margin: 0 0 8px; }
+.announce-time { font-size: 12px; color: #bbb; }
+.announce-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.action-btn { padding: 5px 14px; border: 1px solid; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; background: #fff; font-weight: 500; }
 .action-btn.edit { color: #409eff; border-color: #d9ecff; }
 .action-btn.edit:hover { background: #ecf5ff; }
 .action-btn.danger { color: #f56c6c; border-color: #fde2e2; }
 .action-btn.danger:hover { background: #fef0f0; }
-
-.dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.form-row label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 6px;
-}
+.dialog-form { display: flex; flex-direction: column; gap: 16px; }
+.form-row label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
 </style>

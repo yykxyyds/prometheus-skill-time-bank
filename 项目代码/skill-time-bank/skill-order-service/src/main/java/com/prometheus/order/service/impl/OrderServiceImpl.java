@@ -32,7 +32,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public SkillOrder createOrder(Long buyerId, Long sellerId, Long skillId, Integer amount) {
+    public SkillOrder createOrder(Long buyerId, Long sellerId, Long skillId, Integer amount,
+                                  String contactPhone, String appointmentTime, String appointmentLocation, String plan) {
         if (buyerId.equals(sellerId)) {
             throw new BusinessException("不能给自己下单");
         }
@@ -47,6 +48,10 @@ public class OrderServiceImpl implements OrderService {
         order.setSkillId(skillId);
         order.setAmount(amount);
         order.setFrozenAmount(0);
+        order.setContactPhone(contactPhone);
+        order.setAppointmentTime(appointmentTime);
+        order.setAppointmentLocation(appointmentLocation);
+        order.setPlan(plan);
         order.setStatus(STATUS_PENDING);
         order.setBuyerConfirm(0);
         order.setSellerConfirm(0);

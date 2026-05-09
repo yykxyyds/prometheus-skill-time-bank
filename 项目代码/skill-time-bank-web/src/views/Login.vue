@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { login, register } from '../api/user'
 import { ElMessage } from 'element-plus'
 import { Icon } from '@iconify/vue'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const isLogin = ref(true)
@@ -27,7 +28,7 @@ async function submit() {
     const res = await api(form.value)
     userStore.setUser(res.data)
     ElMessage.success(isLogin.value ? '欢迎回来！' : '注册成功，赠送 100 时间币')
-    router.push('/')
+    router.push(route.query.redirect || '/')
   } finally {
     loading.value = false
   }

@@ -42,7 +42,7 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void publishSkill(Skill skill) {
-        skill.setStatus(1);
+        skill.setStatus(2); // 待审核
         skill.setViewCount(0);
         skill.setOrderCount(0);
         skill.setCreateTime(LocalDateTime.now());

@@ -25,13 +25,17 @@ public class BountyController {
     private final HttpServletRequest request;
 
     /**
-     * 悬赏列表（无需登录）
+     * 悬赏列表（无需登录，但按用户筛选时需登录）
+     *
+     * @param type 筛选类型：null-全部, "publish"-我发布的, "take"-我接的, "complete"-我完成的
      */
     @GetMapping("/list")
     public Result<Page<Bounty>> list(@RequestParam(name = "page", defaultValue = "1") int page,
                                      @RequestParam(name = "size", defaultValue = "10") int size,
-                                     @RequestParam(name = "status", required = false) Integer status) {
-        Page<Bounty> result = bountyService.getBountyList(page, size, status);
+                                     @RequestParam(name = "status", required = false) Integer status,
+                                     @RequestParam(name = "type", required = false) String type) {
+        Long userId = type != null ? getCurrentUserId() : null;
+        Page<Bounty> result = bountyService.getBountyList(page, size, status, type, userId);
         return Result.success(result);
     }
 

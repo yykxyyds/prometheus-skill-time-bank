@@ -6,7 +6,7 @@
 
     <groupId>com.prometheus</groupId>
     <artifactId>skill-time-bank</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
     <packaging>pom</packaging>
 
     <name>skill-time-bank</name>
@@ -19,14 +19,16 @@
         <module>skill-skill-service</module>
         <module>skill-order-service</module>
         <module>skill-wallet-service</module>
+        <module>skill-admin-service</module>
         <module>skill-gateway</module>
     </modules>
 
     <properties>
         <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.proc>full</maven.compiler.proc>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.36</lombok.version>
 
         <spring-boot.version>3.2.0</spring-boot.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
@@ -118,6 +120,11 @@
                 <artifactId>skill-wallet-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.prometheus</groupId>
+                <artifactId>skill-admin-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -126,6 +133,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>

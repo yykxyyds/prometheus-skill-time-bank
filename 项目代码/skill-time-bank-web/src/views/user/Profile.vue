@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
-import { getProfile, updateProfile, getUserProfile } from '../../api/user'
+import { getProfile, updateProfile, getUserProfile, uploadAvatar } from '../../api/user'
 import { ElMessage } from 'element-plus'
 import { Icon } from '@iconify/vue'
 
@@ -14,6 +14,8 @@ const profile = ref({})
 const editing = ref(false)
 const form = ref({ email: '', phone: '', bio: '' })
 const loading = ref(false)
+const uploading = ref(false)
+const avatarInput = ref(null)
 
 onMounted(async () => {
   loading.value = true
@@ -39,6 +41,33 @@ async function save() {
   const res = await getProfile()
   profile.value = res.data || {}
 }
+
+function triggerUpload() {
+  avatarInput.value?.click()
+}
+
+async function handleFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('仅支持图片格式')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过5MB')
+    return
+  }
+  uploading.value = true
+  try {
+    const res = await uploadAvatar(file)
+    const avatarUrl = res.data
+    await updateProfile({ avatar: avatarUrl })
+    profile.value.avatar = avatarUrl
+    ElMessage.success('头像已更新')
+  } catch { /* handled */ }
+  finally { uploading.value = false }
+  e.target.value = ''
+}
 </script>
 
 <template>
@@ -47,8 +76,13 @@ async function save() {
     <div class="profile-hero">
       <div class="hero-bg"></div>
       <div class="hero-content">
-        <div class="user-avatar">
-          <span class="avatar-text">{{ (userStore.username || '?').charAt(0).toUpperCase() }}</span>
+        <div class="user-avatar" :class="{ clickable: isSelf, uploading }" @click="triggerUpload">
+          <img v-if="profile.avatar" :src="profile.avatar" class="avatar-img" />
+          <span v-else class="avatar-text">{{ (profile.username || userStore.username || '?').charAt(0).toUpperCase() }}</span>
+          <div v-if="isSelf" class="avatar-overlay">
+            <Icon icon="mdi:camera" class="camera-icon" />
+          </div>
+          <input ref="avatarInput" type="file" accept="image/*" hidden @change="handleFileChange" />
         </div>
         <div class="user-main">
           <div class="user-name-row">
@@ -183,6 +217,38 @@ async function save() {
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 4px 16px rgba(232,120,74,0.25);
+  position: relative;
+  overflow: hidden;
+}
+.user-avatar.clickable {
+  cursor: pointer;
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.user-avatar.clickable:hover .avatar-overlay {
+  opacity: 1;
+}
+.user-avatar.uploading .avatar-overlay {
+  opacity: 1;
+  background: rgba(0,0,0,0.5);
+}
+.camera-icon {
+  font-size: 28px;
+  color: #fff;
 }
 .avatar-text {
   font-size: 36px;

@@ -213,6 +213,22 @@ function formatTime(t) {
                 <label>完成时间</label>
                 <span>{{ formatTime(order.completedTime) }}</span>
               </div>
+              <div class="info-item" v-if="order.contactPhone">
+                <label>联系电话</label>
+                <span>{{ order.contactPhone }}</span>
+              </div>
+              <div class="info-item" v-if="order.appointmentTime">
+                <label>预约时间</label>
+                <span>{{ order.appointmentTime }}</span>
+              </div>
+              <div class="info-item" v-if="order.appointmentLocation">
+                <label>预约地点</label>
+                <span>{{ order.appointmentLocation }}</span>
+              </div>
+              <div class="info-item info-full" v-if="order.plan">
+                <label>计划安排</label>
+                <span>{{ order.plan }}</span>
+              </div>
             </div>
 
             <!-- 操作按钮 -->
@@ -454,6 +470,7 @@ function formatTime(t) {
 }
 .amount { color: #e8784a !important; font-weight: 700 !important; font-size: 18px !important; }
 .link { color: #e8784a; cursor: pointer; }
+.info-full { grid-column: 1 / -1; }
 .link:hover { text-decoration: underline; }
 
 /* Actions */

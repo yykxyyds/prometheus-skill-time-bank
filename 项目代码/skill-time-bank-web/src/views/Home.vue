@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { getSkillList, getCategories } from '../api/skill'
 import { Icon } from '@iconify/vue'
 import { useScrollReveal } from '../composables/useScrollReveal'
@@ -13,7 +13,7 @@ const heroStats = ref({ skillCount: 0, userCount: 0, orderCount: 0 })
 
 useScrollReveal('.skill-card', { stagger: 80 })
 
-onMounted(async () => {
+async function loadData() {
   loading.value = true
   try {
     const [skillRes, catRes] = await Promise.all([
@@ -31,25 +31,21 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
 
 async function search() {
   query.value.page = 1
-  loading.value = true
-  try {
-    const res = await getSkillList(query.value)
-    skills.value = res.data?.records || []
-    total.value = res.data?.total || 0
-  } finally {
-    loading.value = false
-  }
+  await loadData()
 }
 
 function handlePageChange(page) {
   query.value.page = page
-  search()
+  loadData()
   window.scrollTo({ top: 400, behavior: 'smooth' })
 }
+
+onMounted(loadData)
+onActivated(loadData)
 
 const coverColors = [
   'linear-gradient(135deg, #e8784a, #f0a060)',

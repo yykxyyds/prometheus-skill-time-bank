@@ -24,6 +24,15 @@ api.interceptors.response.use(
     return data
   },
   error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('username')
+      localStorage.removeItem('role')
+      localStorage.removeItem('balance')
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
     const msg = error.response?.data?.msg || '网络错误'
     ElMessage.error(msg)
     return Promise.reject(error)

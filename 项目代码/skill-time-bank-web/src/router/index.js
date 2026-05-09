@@ -80,24 +80,6 @@ const routes = [
     meta: { requiresAuth: true },
     component: () => import('../views/user/MySkills.vue')
   },
-  {
-    path: '/admin/users',
-    name: 'AdminUsers',
-    meta: { requiresAuth: true, requiresAdmin: true },
-    component: () => import('../views/admin/Users.vue')
-  },
-  {
-    path: '/admin/appeals',
-    name: 'AdminAppeals',
-    meta: { requiresAuth: true, requiresAdmin: true },
-    component: () => import('../views/admin/Appeals.vue')
-  },
-  {
-    path: '/admin/announcements',
-    name: 'AdminAnnouncements',
-    meta: { requiresAuth: true, requiresAdmin: true },
-    component: () => import('../views/admin/Announcements.vue')
-  }
 ]
 
 const router = createRouter({
@@ -109,7 +91,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
-  } else if (to.meta.requiresAdmin && !userStore.isAdmin) {
+  } else if (to.meta.requiresAdmin) {
     next('/')
   } else {
     next()

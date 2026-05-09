@@ -4,12 +4,20 @@ import { getBountyList } from '../api/skill'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { Icon } from '@iconify/vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
 const bounties = ref([])
 const loading = ref(false)
-const query = ref({ page: 1, size: 20, status: null })
+const query = ref({ page: 1, size: 20, status: null, type: null })
+
+const filterOpts = [
+  { type: null, label: '全部' },
+  { type: 'publish', label: '已发布', needLogin: true },
+  { type: 'take', label: '已接单', needLogin: true },
+  { type: 'complete', label: '已完成', needLogin: true }
+]
 
 onMounted(async () => {
   await loadBounties()
@@ -23,6 +31,16 @@ async function loadBounties() {
   } finally {
     loading.value = false
   }
+}
+
+function switchFilter(opt) {
+  if (opt.needLogin && !userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  query.value.type = opt.type
+  query.value.page = 1
+  loadBounties()
 }
 
 const statusMap = {
@@ -54,15 +72,15 @@ function statusLabel(status) {
       </button>
     </div>
 
-    <!-- 状态筛选 -->
+    <!-- 筛选栏 -->
     <div class="filter-bar">
       <button
-        v-for="opt in [{v:null,l:'全部'},{v:1,l:'已发布'},{v:2,l:'已接单'},{v:3,l:'已完成'}]"
-        :key="opt.v"
-        :class="['filter-tag', { active: query.status === opt.v }]"
-        @click="query.status = opt.v; loadBounties()"
+        v-for="opt in filterOpts"
+        :key="opt.label"
+        :class="['filter-tag', { active: query.type === opt.type }]"
+        @click="switchFilter(opt)"
       >
-        {{ opt.l }}
+        {{ opt.label }}
       </button>
     </div>
 

@@ -30,7 +30,12 @@ public class OrderController {
         Long sellerId = Long.valueOf(body.get("sellerId").toString());
         Long skillId = Long.valueOf(body.get("skillId").toString());
         Integer amount = Integer.valueOf(body.get("amount").toString());
-        return Result.success(orderService.createOrder(buyerId, sellerId, skillId, amount));
+        String contactPhone = (String) body.get("contactPhone");
+        String appointmentTime = (String) body.get("appointmentTime");
+        String appointmentLocation = (String) body.get("appointmentLocation");
+        String plan = (String) body.get("plan");
+        return Result.success(orderService.createOrder(buyerId, sellerId, skillId, amount,
+                contactPhone, appointmentTime, appointmentLocation, plan));
     }
 
     @RequireAuth

@@ -28,9 +28,9 @@ public class BountyServiceImpl implements BountyService {
     private final BountyApplicationMapper applicationMapper;
 
     @Override
-    public Page<Bounty> getBountyList(int page, int size, Integer status) {
+    public Page<Bounty> getBountyList(int page, int size, Integer status, String type, Long userId) {
         Page<Bounty> pageParam = new Page<>(page, size);
-        return bountyMapper.selectPageWithUser(pageParam, status);
+        return bountyMapper.selectPageWithUser(pageParam, status, type, userId);
     }
 
     @Override

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import api from '../../api/index'
@@ -21,13 +21,20 @@ onMounted(async () => {
   await loadOrders()
 })
 
+// 切换买/卖方时重新加载数据
+watch(() => route.name, async () => {
+  await loadOrders()
+})
+
 async function loadOrders() {
   loading.value = true
   try {
     const endpoint = isBuyer.value ? '/order/buyer' : '/order/seller'
     const res = await api.get(endpoint)
     orders.value = res.data || []
-  } catch (e) { /* handled */ } finally {
+  } catch (e) {
+    console.error('加载订单失败', e)
+  } finally {
     loading.value = false
   }
 }

@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.prometheus</groupId>
         <artifactId>skill-time-bank</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -35,6 +35,10 @@
         <dependency>
             <groupId>com.prometheus</groupId>
             <artifactId>skill-wallet-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.prometheus</groupId>
+            <artifactId>skill-admin-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
