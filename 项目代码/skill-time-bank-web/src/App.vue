@@ -1,12 +1,55 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from './stores/user'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
+import api from './api/index'
 
 const userStore = useUserStore()
 const router = useRouter()
 const menuOpen = ref(false)
+const announcements = ref([])
+const showAnnouncePanel = ref(false)
+const loadingAnnounce = ref(false)
+const unreadCount = ref(0)
+let unreadTimer = null
+
+onMounted(() => {
+  loadUnread()
+  unreadTimer = setInterval(loadUnread, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) clearInterval(unreadTimer)
+})
+
+async function loadUnread() {
+  if (!useUserStore().isLoggedIn) { unreadCount.value = 0; return }
+  try {
+    const res = await api.get('/chat/private/unread')
+    unreadCount.value = res.data || 0
+  } catch { /* silent */ }
+}
+
+async function loadAnnouncements() {
+  if (announcements.value.length > 0) {
+    showAnnouncePanel.value = true
+    return
+  }
+  loadingAnnounce.value = true
+  try {
+    const res = await api.get('/announcement/list', { params: { page: 1, size: 50 } })
+    announcements.value = res.data?.records || []
+    showAnnouncePanel.value = true
+  } catch (e) { /* silent */ } finally {
+    loadingAnnounce.value = false
+  }
+}
+
+function formatTime(t) {
+  if (!t) return ''
+  return t.replace('T', ' ').substring(0, 16)
+}
 
 function closeMenu() {
   menuOpen.value = false
@@ -31,6 +74,9 @@ function closeMenu() {
           <router-link to="/bounty" class="nav-item" active-class="nav-active" @click="closeMenu">
             <Icon icon="mdi:clipboard-text-search" class="nav-icon" />需求悬赏
           </router-link>
+          <a class="nav-item" style="cursor:pointer" @click="loadAnnouncements">
+            <Icon icon="mdi:bullhorn" class="nav-icon" />公告
+          </a>
 
           <template v-if="userStore.isLoggedIn">
             <router-link to="/orders/buyer" class="nav-item" active-class="nav-active" @click="closeMenu">
@@ -38,6 +84,10 @@ function closeMenu() {
             </router-link>
             <router-link to="/my-skills" class="nav-item" active-class="nav-active" @click="closeMenu">
               <Icon icon="mdi:briefcase" class="nav-icon" />我的技能
+            </router-link>
+            <router-link to="/messages" class="nav-item" active-class="nav-active" @click="closeMenu">
+              <Icon icon="mdi:message-text" class="nav-icon" />消息
+              <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
             </router-link>
             <router-link to="/wallet" class="nav-item" active-class="nav-active" @click="closeMenu">
               <Icon icon="mdi:bank" class="nav-icon" />时间银行
@@ -78,6 +128,9 @@ function closeMenu() {
             <router-link to="/bounty" class="drawer-item" active-class="nav-active" @click="closeMenu">
               <Icon icon="mdi:clipboard-text-search" />需求悬赏
             </router-link>
+            <a class="drawer-item" style="cursor:pointer" @click="loadAnnouncements(); closeMenu()">
+              <Icon icon="mdi:bullhorn" />公告
+            </a>
 
             <template v-if="userStore.isLoggedIn">
               <div class="drawer-divider"></div>
@@ -86,6 +139,10 @@ function closeMenu() {
               </router-link>
               <router-link to="/my-skills" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:briefcase" />我的技能
+              </router-link>
+              <router-link to="/messages" class="drawer-item" active-class="nav-active" @click="closeMenu">
+                <Icon icon="mdi:message-text" />消息
+                <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
               </router-link>
               <router-link to="/wallet" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:bank" />时间银行
@@ -143,6 +200,24 @@ function closeMenu() {
         </div>
       </div>
     </footer>
+
+    <!-- 公告弹窗 -->
+    <el-dialog v-model="showAnnouncePanel" title="📢 平台公告" width="560px" top="8vh" destroy-on-close>
+      <div v-loading="loadingAnnounce" class="announce-panel-list">
+        <el-empty v-if="!loadingAnnounce && announcements.length === 0" description="暂无公告" :image-size="60" />
+        <article v-for="item in announcements" :key="item.id" class="panel-announce-item">
+          <h3 class="panel-announce-title">
+            <span v-if="item.isTop" class="panel-top-badge">置顶</span>
+            {{ item.title }}
+          </h3>
+          <p class="panel-announce-content">{{ item.content }}</p>
+          <span class="panel-announce-time">{{ formatTime(item.createTime) }}</span>
+        </article>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="showAnnouncePanel = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -235,6 +310,16 @@ function closeMenu() {
 .nav-icon {
   font-size: 18px;
   flex-shrink: 0;
+}
+.nav-badge {
+  background: #f56c6c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 2px;
+  line-height: 1.4;
 }
 .nav-login {
   background: linear-gradient(135deg, #e8784a, #f0a060);
@@ -569,5 +654,50 @@ function closeMenu() {
   .footer-info {
     text-align: center;
   }
+}
+
+/* ========== 公告弹窗 ========== */
+.announce-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.panel-announce-item {
+  border-bottom: 1px solid #f0e8e0;
+  padding-bottom: 14px;
+}
+.panel-announce-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.panel-announce-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-top-badge {
+  font-size: 11px;
+  background: #e8784a;
+  color: #fff;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.panel-announce-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+.panel-announce-time {
+  font-size: 12px;
+  color: #bbb;
 }
 </style>

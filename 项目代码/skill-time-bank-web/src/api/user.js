@@ -27,3 +27,19 @@ export function uploadAvatar(file) {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
+
+export function followUser(targetId) {
+  return api.post(`/user/follow/${targetId}`)
+}
+
+export function unfollowUser(targetId) {
+  return api.delete(`/user/follow/${targetId}`)
+}
+
+export function getFollowStatus(targetId) {
+  return api.get(`/user/follow/${targetId}/status`)
+}
+
+export function getFriends() {
+  return api.get('/user/friends')
+}

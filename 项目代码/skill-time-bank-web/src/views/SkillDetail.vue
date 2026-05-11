@@ -72,8 +72,8 @@ async function handleOrder() {
         <!-- 左侧主体 -->
         <div class="detail-main">
           <div class="cover-wrap">
-            <div class="cover-img">
-              <span class="cover-letter">{{ skill.title?.charAt(0) }}</span>
+            <div class="cover-img" :class="{ 'has-image': skill.coverImage }" :style="skill.coverImage ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+              <span v-if="!skill.coverImage" class="cover-letter">{{ skill.title?.charAt(0) }}</span>
             </div>
           </div>
 
@@ -98,12 +98,15 @@ async function handleOrder() {
 
             <div class="seller-section" v-if="skill.userName">
               <h3>技能提供者</h3>
-              <div class="seller-card" @click="router.push(`/profile/${skill.userId}`)">
-                <div class="seller-avatar">{{ skill.userName?.charAt(0) }}</div>
-                <div class="seller-info">
+              <div class="seller-card">
+                <div class="seller-avatar" @click="router.push(`/profile/${skill.userId}`)">{{ skill.userName?.charAt(0) }}</div>
+                <div class="seller-info" @click="router.push(`/profile/${skill.userId}`)">
                   <span class="seller-name">{{ skill.userName }}</span>
                   <span class="seller-hint">点击查看主页</span>
                 </div>
+                <button v-if="userStore.isLoggedIn && skill.userId !== userStore.userId" class="msg-seller-btn" @click="router.push(`/messages?userId=${skill.userId}`)">
+                  <Icon icon="mdi:message-text" /> 发私信
+                </button>
               </div>
             </div>
           </div>
@@ -275,12 +278,36 @@ async function handleOrder() {
   padding: 14px;
   border: 1px solid #f0e8e0;
   border-radius: 10px;
-  cursor: pointer;
   transition: all 0.3s;
 }
 .seller-card:hover {
   border-color: #e8784a;
   background: #fdf9f6;
+}
+.seller-card .seller-avatar,
+.seller-card .seller-info {
+  cursor: pointer;
+}
+.msg-seller-btn {
+  margin-left: auto;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.msg-seller-btn:hover {
+  box-shadow: 0 4px 14px rgba(232,120,74,0.3);
+  transform: translateY(-1px);
 }
 .seller-avatar {
   width: 44px;

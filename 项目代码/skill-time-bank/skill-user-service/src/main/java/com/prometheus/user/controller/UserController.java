@@ -9,13 +9,10 @@ import com.prometheus.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -69,5 +66,50 @@ public class UserController {
     @GetMapping("/{userId}/profile")
     public Result<?> getOtherProfile(@PathVariable Long userId) {
         return userService.getProfile(userId);
+    }
+
+    // ========== 关注/好友 ==========
+
+    /**
+     * 关注用户（需登录）
+     */
+    @RequireAuth
+    @PostMapping("/follow/{targetId}")
+    public Result<Void> follow(@PathVariable Long targetId, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.followUser(userId, targetId);
+        return Result.success();
+    }
+
+    /**
+     * 取消关注（需登录）
+     */
+    @RequireAuth
+    @DeleteMapping("/follow/{targetId}")
+    public Result<Void> unfollow(@PathVariable Long targetId, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.unfollowUser(userId, targetId);
+        return Result.success();
+    }
+
+    /**
+     * 查询关注状态（需登录）
+     */
+    @RequireAuth
+    @GetMapping("/follow/{targetId}/status")
+    public Result<Map<String, Object>> followStatus(@PathVariable Long targetId,
+                                                     HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(userService.getFollowStatus(userId, targetId));
+    }
+
+    /**
+     * 好友列表（互相关注，需登录）
+     */
+    @RequireAuth
+    @GetMapping("/friends")
+    public Result<List<Map<String, Object>>> friends(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(userService.getFriends(userId));
     }
 }

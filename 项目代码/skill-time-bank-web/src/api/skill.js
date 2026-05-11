@@ -35,3 +35,11 @@ export function getBountyList(params) {
 export function publishBounty(data) {
   return api.post('/bounty', data)
 }
+
+export function uploadImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post('/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

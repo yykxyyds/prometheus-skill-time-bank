@@ -110,12 +110,14 @@ public class OrderServiceImpl implements OrderService {
         if (!order.getBuyerId().equals(userId)) {
             throw new BusinessException("只有买方可以确认完成");
         }
-        if (order.getStatus() != STATUS_IN_PROGRESS) {
+        if (order.getStatus() != STATUS_IN_PROGRESS && order.getStatus() != STATUS_WAIT_COMPLETE) {
             throw new BusinessException("订单状态不正确，当前状态：" + getStatusDesc(order.getStatus()));
+        }
+        if (order.getBuyerConfirm() != null && order.getBuyerConfirm() == 1) {
+            throw new BusinessException("您已确认完成，请勿重复操作");
         }
 
         order.setBuyerConfirm(1);
-        order.setStatus(STATUS_WAIT_COMPLETE);
         order.setUpdateTime(LocalDateTime.now());
         skillOrderMapper.updateById(order);
 
@@ -123,6 +125,9 @@ public class OrderServiceImpl implements OrderService {
 
         if (order.getSellerConfirm() != null && order.getSellerConfirm() == 1) {
             doCompleteOrder(orderId);
+        } else {
+            order.setStatus(STATUS_WAIT_COMPLETE);
+            skillOrderMapper.updateById(order);
         }
     }
 
@@ -136,12 +141,14 @@ public class OrderServiceImpl implements OrderService {
         if (!order.getSellerId().equals(userId)) {
             throw new BusinessException("只有卖方可以确认完成");
         }
-        if (order.getStatus() != STATUS_IN_PROGRESS) {
+        if (order.getStatus() != STATUS_IN_PROGRESS && order.getStatus() != STATUS_WAIT_COMPLETE) {
             throw new BusinessException("订单状态不正确，当前状态：" + getStatusDesc(order.getStatus()));
+        }
+        if (order.getSellerConfirm() != null && order.getSellerConfirm() == 1) {
+            throw new BusinessException("您已确认完成，请勿重复操作");
         }
 
         order.setSellerConfirm(1);
-        order.setStatus(STATUS_WAIT_COMPLETE);
         order.setUpdateTime(LocalDateTime.now());
         skillOrderMapper.updateById(order);
 
@@ -149,6 +156,9 @@ public class OrderServiceImpl implements OrderService {
 
         if (order.getBuyerConfirm() != null && order.getBuyerConfirm() == 1) {
             doCompleteOrder(orderId);
+        } else {
+            order.setStatus(STATUS_WAIT_COMPLETE);
+            skillOrderMapper.updateById(order);
         }
     }
 

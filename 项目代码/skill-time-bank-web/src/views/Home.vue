@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted, onActivated } from 'vue'
 import { getSkillList, getCategories } from '../api/skill'
+import api from '../api/index'
 import { Icon } from '@iconify/vue'
 import { useScrollReveal } from '../composables/useScrollReveal'
+import { ElMessage } from 'element-plus'
 
 const skills = ref([])
 const categories = ref([])
@@ -10,6 +12,8 @@ const loading = ref(false)
 const query = ref({ page: 1, size: 12, categoryId: null, keyword: '', sort: '' })
 const total = ref(0)
 const heroStats = ref({ skillCount: 0, userCount: 0, orderCount: 0 })
+const announcements = ref([])
+const showAnnouncePopup = ref(false)
 
 useScrollReveal('.skill-card', { stagger: 80 })
 
@@ -33,6 +37,32 @@ async function loadData() {
   }
 }
 
+async function loadAnnouncements() {
+  try {
+    const res = await api.get('/announcement/list', { params: { page: 1, size: 50 } })
+    announcements.value = res.data?.records || []
+    if (announcements.value.length > 0) {
+      const today = new Date().toDateString()
+      const lastShown = localStorage.getItem('announce_last_shown')
+      if (lastShown !== today) {
+        showAnnouncePopup.value = true
+      }
+    }
+  } catch (e) { /* silent */ }
+}
+
+function closeAnnouncePopup(dontShowToday = false) {
+  showAnnouncePopup.value = false
+  if (dontShowToday) {
+    localStorage.setItem('announce_last_shown', new Date().toDateString())
+  }
+}
+
+function formatTime(t) {
+  if (!t) return ''
+  return t.replace('T', ' ').substring(0, 16)
+}
+
 async function search() {
   query.value.page = 1
   await loadData()
@@ -44,7 +74,10 @@ function handlePageChange(page) {
   window.scrollTo({ top: 400, behavior: 'smooth' })
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadData()
+  await loadAnnouncements()
+})
 onActivated(loadData)
 
 const coverColors = [
@@ -147,9 +180,11 @@ function coverColor(index) {
           class="skill-card reveal-on-scroll"
           @click="$router.push(`/skill/${skill.id}`)"
         >
-          <div class="card-cover" :style="{ background: coverColor(idx) }">
-            <span class="cover-letter">{{ skill.title?.charAt(0) }}</span>
-            <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
+          <div class="card-cover" :style="skill.coverImage ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: coverColor(idx) }">
+            <template v-if="!skill.coverImage">
+              <span class="cover-letter">{{ skill.title?.charAt(0) }}</span>
+              <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
+            </template>
           </div>
           <div class="card-body">
             <h3 class="card-title">{{ skill.title }}</h3>
@@ -179,6 +214,24 @@ function coverColor(index) {
         />
       </div>
     </section>
+
+    <!-- 首页公告弹窗 -->
+    <el-dialog v-model="showAnnouncePopup" title="📢 平台公告" width="560px" top="8vh" destroy-on-close>
+      <div class="announce-popup-list">
+        <article v-for="item in announcements" :key="item.id" class="popup-announce-item">
+          <h3 class="popup-announce-title">
+            <span v-if="item.isTop" class="popup-top-badge">置顶</span>
+            {{ item.title }}
+          </h3>
+          <p class="popup-announce-content">{{ item.content }}</p>
+          <span class="popup-announce-time">{{ formatTime(item.createTime) }}</span>
+        </article>
+      </div>
+      <template #footer>
+        <span class="dialog-footer-hint" @click="closeAnnouncePopup(true)">今日不再显示</span>
+        <el-button type="primary" @click="closeAnnouncePopup(false)">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -458,5 +511,60 @@ function coverColor(index) {
   display: flex;
   justify-content: center;
   margin-top: 36px;
+}
+
+/* ========== 公告弹窗 ========== */
+.announce-popup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.popup-announce-item {
+  border-bottom: 1px solid #f0e8e0;
+  padding-bottom: 14px;
+}
+.popup-announce-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.popup-announce-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.popup-top-badge {
+  font-size: 11px;
+  background: #e8784a;
+  color: #fff;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.popup-announce-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+.popup-announce-time {
+  font-size: 12px;
+  color: #bbb;
+}
+.dialog-footer-hint {
+  font-size: 13px;
+  color: #bbb;
+  cursor: pointer;
+  float: left;
+  line-height: 32px;
+}
+.dialog-footer-hint:hover {
+  color: #e8784a;
 }
 </style>

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +46,16 @@ public class BountyController {
     @GetMapping("/{id}")
     public Result<Bounty> detail(@PathVariable Long id) {
         return Result.success(bountyService.getBountyDetail(id));
+    }
+
+    /**
+     * 获取悬赏的申请列表（需登录，仅悬赏发布者可查看）
+     */
+    @RequireAuth
+    @GetMapping("/{id}/applications")
+    public Result<List<com.prometheus.skill.entity.BountyApplication>> applications(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        return Result.success(bountyService.getApplications(id, userId));
     }
 
     /**

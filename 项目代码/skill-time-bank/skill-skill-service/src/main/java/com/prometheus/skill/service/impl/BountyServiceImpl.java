@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 悬赏服务实现
@@ -187,5 +188,20 @@ public class BountyServiceImpl implements BountyService {
             throw new BusinessException("悬赏不存在");
         }
         return bounty;
+    }
+
+    @Override
+    public List<BountyApplication> getApplications(Long bountyId, Long userId) {
+        Bounty bounty = bountyMapper.selectById(bountyId);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+        if (!bounty.getUserId().equals(userId)) {
+            throw new BusinessException("只能查看自己悬赏的申请");
+        }
+        LambdaQueryWrapper<BountyApplication> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BountyApplication::getBountyId, bountyId)
+                .orderByDesc(BountyApplication::getCreateTime);
+        return applicationMapper.selectList(wrapper);
     }
 }

@@ -27,6 +27,18 @@ public class UploadController {
     @RequireAuth
     public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file,
                                        HttpServletRequest request) {
+        return uploadImage(file, "avatars", request);
+    }
+
+    @PostMapping("/image")
+    @RequireAuth
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile file,
+                                      HttpServletRequest request) {
+        return uploadImage(file, "images", request);
+    }
+
+    private Result<String> uploadImage(MultipartFile file, String subDir,
+                                        HttpServletRequest request) {
         if (file.isEmpty()) {
             return Result.fail("请选择图片");
         }
@@ -44,15 +56,16 @@ public class UploadController {
             if (ext.equals("jpeg")) ext = "jpg";
             String filename = UUID.randomUUID() + "." + ext;
 
-            Path uploadDir = Paths.get("uploads", "avatars");
+            Path uploadDir = Paths.get("uploads", subDir);
             Files.createDirectories(uploadDir);
             file.transferTo(uploadDir.resolve(filename));
 
-            String url = "/uploads/avatars/" + filename;
-            log.info("头像上传成功: userId={}, url={}", request.getAttribute("userId"), url);
+            String url = "/uploads/" + subDir + "/" + filename;
+            log.info("图片上传成功: userId={}, url={}, dir={}",
+                    request.getAttribute("userId"), url, subDir);
             return Result.success(url);
         } catch (IOException e) {
-            log.error("头像上传失败", e);
+            log.error("图片上传失败", e);
             return Result.fail("上传失败");
         }
     }

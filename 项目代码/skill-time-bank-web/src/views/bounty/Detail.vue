@@ -5,6 +5,7 @@ import { useUserStore } from '../../stores/user'
 import api from '../../api/index'
 import { Icon } from '@iconify/vue'
 import { ElMessage } from 'element-plus'
+import { getUserProfile } from '../../api/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,17 +39,24 @@ const showApplyForm = computed(() => bounty.value.status === 1 && !isOwner.value
 const applications = ref([])
 const loadingApps = ref(false)
 const showApps = ref(false)
+const applicantProfiles = ref({})
 
 async function loadApplications() {
-  loadingApps.value = true
   showApps.value = !showApps.value
   if (!showApps.value) return
+  loadingApps.value = true
   try {
-    // applications are embedded in bounty detail or via dedicated endpoint
-    // currently using the bounty data which may include applications
-    const res = await api.get(`/bounty/${bounty.value.id}`)
-    bounty.value = res.data || {}
-    applications.value = bounty.value.applications || []
+    const res = await api.get(`/bounty/${bounty.value.id}/applications`)
+    applications.value = res.data || []
+    // 获取申请人信息
+    const profiles = {}
+    for (const app of applications.value) {
+      try {
+        const pr = await getUserProfile(app.applicantId)
+        profiles[app.applicantId] = pr.data || {}
+      } catch { /* ignore */ }
+    }
+    applicantProfiles.value = profiles
   } catch (e) { /* handled */ } finally {
     loadingApps.value = false
   }
@@ -155,14 +163,24 @@ async function handleComplete() {
             </div>
             <div class="app-list" v-if="showApps && applications.length > 0" v-loading="loadingApps">
               <div v-for="app in applications" :key="app.id" class="app-item">
-                <div class="app-info">
-                  <span class="app-user">申请人 #{{ app.userId }}</span>
-                  <span class="app-msg">{{ app.message }}</span>
-                  <span class="app-time">{{ app.createTime }}</span>
-                </div>
-                <div class="app-actions" v-if="bounty.status === 1">
-                  <button class="btn-sm primary" @click="handleAccept(app.id)">接受</button>
-                  <button class="btn-sm danger" @click="handleReject(app.id)">拒绝</button>
+                <div class="app-user-card">
+                  <div class="au-avatar" @click="router.push(`/profile/${app.applicantId}`)">
+                    {{ (applicantProfiles[app.applicantId]?.username || '?').charAt(0) }}
+                  </div>
+                  <div class="au-info" @click="router.push(`/profile/${app.applicantId}`)">
+                    <span class="au-name">{{ applicantProfiles[app.applicantId]?.username || '用户#' + app.applicantId }}</span>
+                    <span class="au-msg">{{ app.message }}</span>
+                    <span class="au-time">{{ app.createTime }}</span>
+                  </div>
+                  <div class="au-actions">
+                    <button class="btn-sm ghost" @click.stop="router.push(`/messages?userId=${app.applicantId}`)">
+                      <Icon icon="mdi:message-text" /> 私信
+                    </button>
+                    <template v-if="bounty.status === 1">
+                      <button class="btn-sm primary" @click="handleAccept(app.id)">接受</button>
+                      <button class="btn-sm danger" @click="handleReject(app.id)">拒绝</button>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -365,35 +383,72 @@ async function handleComplete() {
   gap: 10px;
 }
 .app-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 14px;
+  padding: 14px;
   background: #fdf9f6;
   border-radius: 10px;
   border: 1px solid #f0e8e0;
 }
-.app-info {
+.app-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.au-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f0a060, #e8784a);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.au-avatar:hover {
+  box-shadow: 0 2px 10px rgba(232,120,74,0.3);
+}
+.au-info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.app-user {
+.au-name {
   font-weight: 600;
   color: #e8784a;
   font-size: 14px;
 }
-.app-msg {
+.au-msg {
   font-size: 13px;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.app-time {
+.au-time {
   font-size: 11px;
   color: #bbb;
 }
-.app-actions {
+.au-actions {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
+}
+.btn-sm.ghost {
+  color: #e8784a;
+  border-color: #f0c8b0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.btn-sm.ghost:hover {
+  background: rgba(232,120,74,0.06);
 }
 .btn-sm {
   padding: 4px 14px;

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getMySkills, offlineSkill, publishSkill, updateSkill, getCategories } from '../../api/skill'
+import { getMySkills, offlineSkill, publishSkill, updateSkill, getCategories, uploadImage } from '../../api/skill'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -10,7 +10,8 @@ const loading = ref(false)
 const showDialog = ref(false)
 const isEdit = ref(false)
 const categories = ref([])
-const form = ref({ id: null, title: '', description: '', price: 0, categoryId: null })
+const form = ref({ id: null, title: '', description: '', price: 0, categoryId: null, coverImage: '' })
+const uploading = ref(false)
 
 const onlineCount = computed(() => skills.value.filter(s => s.status === 1).length)
 
@@ -30,7 +31,7 @@ onMounted(async () => {
 
 function openCreate() {
   isEdit.value = false
-  form.value = { id: null, title: '', description: '', price: 0, categoryId: null }
+  form.value = { id: null, title: '', description: '', price: 0, categoryId: null, coverImage: '' }
   showDialog.value = true
 }
 
@@ -38,6 +39,24 @@ function openEdit(skill) {
   isEdit.value = true
   form.value = { ...skill }
   showDialog.value = true
+}
+
+async function handleCoverUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) { ElMessage.warning('仅支持图片格式'); return }
+  if (file.size > 5 * 1024 * 1024) { ElMessage.warning('图片不能超过5MB'); return }
+  uploading.value = true
+  try {
+    const res = await uploadImage(file)
+    form.value.coverImage = res.data
+    ElMessage.success('封面已上传')
+  } catch { /* handled */ }
+  finally { uploading.value = false }
+}
+
+function removeCover() {
+  form.value.coverImage = ''
 }
 
 async function handleSave() {
@@ -143,6 +162,24 @@ async function handleOffline(id) {
         <div class="form-row">
           <label>技能描述</label>
           <el-input v-model="form.description" type="textarea" :rows="4" placeholder="描述你的技能内容、服务方式..." />
+        </div>
+        <div class="form-row">
+          <label>封面图片</label>
+          <div class="cover-upload">
+            <template v-if="form.coverImage">
+              <div class="cover-preview">
+                <img :src="form.coverImage" alt="封面预览" />
+                <button class="cover-remove" @click="removeCover">×</button>
+              </div>
+            </template>
+            <template v-else>
+              <label class="cover-upload-box" :class="{ loading: uploading }">
+                <input type="file" accept="image/*" hidden @change="handleCoverUpload" :disabled="uploading" />
+                <span v-if="uploading">上传中...</span>
+                <span v-else>+ 上传封面</span>
+              </label>
+            </template>
+          </div>
         </div>
       </div>
       <template #footer>
@@ -270,5 +307,59 @@ async function handleOffline(id) {
   font-weight: 600;
   color: #555;
   margin-bottom: 6px;
+}
+
+/* 封面上传 */
+.cover-upload { }
+.cover-upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border: 2px dashed #e8e0d8;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.cover-upload-box:hover {
+  border-color: #e8784a;
+  color: #e8784a;
+  background: #fdf9f6;
+}
+.cover-upload-box.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.cover-preview {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cover-preview img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px;
+}
+.cover-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+}
+.cover-remove:hover {
+  background: rgba(0,0,0,0.7);
 }
 </style>

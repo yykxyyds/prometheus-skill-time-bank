@@ -27,6 +27,7 @@ public interface BountyMapper extends BaseMapper<Bounty> {
             "<if test='type == \"publish\"'>AND b.user_id = #{userId}</if>" +
             "<if test='type == \"take\"'>AND b.applicant_id = #{userId}</if>" +
             "<if test='type == \"complete\"'>AND b.status = 3 AND (b.user_id = #{userId} OR b.applicant_id = #{userId})</if>" +
+            "<if test='type == \"apply\"'>AND b.id IN (SELECT ba.bounty_id FROM bounty_application ba WHERE ba.applicant_id = #{userId} AND ba.status = 1)</if>" +
             "ORDER BY b.create_time DESC" +
             "</script>")
     Page<Bounty> selectPageWithUser(Page<Bounty> page, @Param("status") Integer status,

@@ -14,6 +14,7 @@ const query = ref({ page: 1, size: 20, status: null, type: null })
 
 const filterOpts = [
   { type: null, label: '全部' },
+  { type: 'apply', label: '待审核', needLogin: true },
   { type: 'publish', label: '已发布', needLogin: true },
   { type: 'take', label: '已接单', needLogin: true },
   { type: 'complete', label: '已完成', needLogin: true }

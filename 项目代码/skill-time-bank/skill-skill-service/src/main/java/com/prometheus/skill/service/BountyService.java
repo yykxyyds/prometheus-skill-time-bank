@@ -45,4 +45,9 @@ public interface BountyService {
      * 悬赏详情（含发布者用户名）
      */
     Bounty getBountyDetail(Long id);
+
+    /**
+     * 获取悬赏的申请列表
+     */
+    java.util.List<com.prometheus.skill.entity.BountyApplication> getApplications(Long bountyId, Long userId);
 }

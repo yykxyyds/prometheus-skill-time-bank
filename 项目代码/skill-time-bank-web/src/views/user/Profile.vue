@@ -1,15 +1,47 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
-import { getProfile, updateProfile, getUserProfile, uploadAvatar } from '../../api/user'
-import { ElMessage } from 'element-plus'
+import { getProfile, updateProfile, getUserProfile, uploadAvatar, getFollowStatus, followUser, unfollowUser } from '../../api/user'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Icon } from '@iconify/vue'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 
 const isSelf = computed(() => !route.params.id || route.params.id === String(userStore.userId))
+
+// 关注状态
+const followStatus = ref(null)
+const followLoading = ref(false)
+
+async function loadFollowStatus() {
+  try {
+    const res = await getFollowStatus(route.params.id)
+    followStatus.value = res.data
+  } catch { /* handled */ }
+}
+
+async function handleFollow() {
+  followLoading.value = true
+  try {
+    if (followStatus.value?.isFollowing) {
+      await unfollowUser(route.params.id)
+      followStatus.value.isFollowing = false
+      ElMessage.success('已取消关注')
+    } else {
+      await followUser(route.params.id)
+      followStatus.value.isFollowing = true
+      ElMessage.success('关注成功')
+    }
+  } catch { /* handled */ }
+  finally { followLoading.value = false }
+}
+
+function goChat() {
+  router.push(`/messages?userId=${route.params.id}`)
+}
 const profile = ref({})
 const editing = ref(false)
 const form = ref({ email: '', phone: '', bio: '' })
@@ -31,6 +63,9 @@ onMounted(async () => {
     }
   } finally {
     loading.value = false
+  }
+  if (!isSelf.value && userStore.isLoggedIn) {
+    loadFollowStatus()
   }
 })
 
@@ -105,6 +140,14 @@ async function handleFileChange(e) {
         >
           编辑资料
         </button>
+        <div v-if="!isSelf && userStore.isLoggedIn" class="profile-actions">
+          <button class="action-btn follow-btn" :class="{ following: followStatus?.isFollowing }" :disabled="followLoading" @click="handleFollow">
+            {{ followStatus?.isFollowing ? '已关注' : '关注' }}
+          </button>
+          <button class="action-btn msg-btn" @click="goChat">
+            <Icon icon="mdi:message-text" /> 发私信
+          </button>
+        </div>
       </div>
     </div>
 
@@ -316,6 +359,55 @@ async function handleFileChange(e) {
 }
 .edit-btn:hover {
   box-shadow: 0 4px 14px rgba(232,120,74,0.3);
+  transform: translateY(-1px);
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+.action-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.follow-btn {
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+}
+.follow-btn:hover {
+  box-shadow: 0 4px 14px rgba(232,120,74,0.3);
+  transform: translateY(-1px);
+}
+.follow-btn.following {
+  background: #f5f5f5;
+  color: #999;
+  border: 1px solid #e8e0d8;
+}
+.follow-btn.following:hover {
+  background: #fee;
+  color: #f56c6c;
+  border-color: #fcc;
+}
+.msg-btn {
+  background: #fff;
+  color: #e8784a;
+  border: 1px solid #e8784a;
+}
+.msg-btn:hover {
+  background: rgba(232,120,74,0.06);
+  box-shadow: 0 4px 14px rgba(232,120,74,0.15);
   transform: translateY(-1px);
 }
 

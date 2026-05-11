@@ -80,6 +80,12 @@ const routes = [
     meta: { requiresAuth: true },
     component: () => import('../views/user/MySkills.vue')
   },
+  {
+    path: '/messages',
+    name: 'Messages',
+    meta: { requiresAuth: true },
+    component: () => import('../views/Messages.vue')
+  },
 ]
 
 const router = createRouter({
