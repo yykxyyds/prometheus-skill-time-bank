@@ -15,6 +15,8 @@ const form = ref({ id: null, title: '', description: '', price: 0, categoryId: n
 const uploading = ref(false)
 
 const onlineCount = computed(() => skills.value.filter(s => s.status === 1).length)
+const pendingCount = computed(() => skills.value.filter(s => s.status === 2).length)
+const rejectedCount = computed(() => skills.value.filter(s => s.status === 3).length)
 
 onMounted(async () => {
   loading.value = true
@@ -74,7 +76,7 @@ async function handleSave() {
   }
   showDialog.value = false
   const res = await getMySkills()
-  skills.value = res.data || []
+  skills.value = res.data?.records || []
 }
 
 async function handleOffline(id) {
@@ -82,7 +84,7 @@ async function handleOffline(id) {
   await offlineSkill(id)
   ElMessage.success('已下架')
   const res = await getMySkills()
-  skills.value = res.data || []
+  skills.value = res.data?.records || []
 }
 </script>
 
@@ -107,6 +109,14 @@ async function handleOffline(id) {
         <span class="mini-num online">{{ onlineCount }}</span>
         <span class="mini-label">上架中</span>
       </div>
+      <div class="mini-stat">
+        <span class="mini-num pending">{{ pendingCount }}</span>
+        <span class="mini-label">待审核</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-num rejected">{{ rejectedCount }}</span>
+        <span class="mini-label">已拒绝</span>
+      </div>
     </div>
 
     <!-- 技能表格 -->
@@ -127,15 +137,15 @@ async function handleOffline(id) {
         <el-table-column prop="orderCount" label="订单" width="80" align="center" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <span class="row-status" :class="row.status === 1 ? 'on' : row.status === 2 ? 'pending' : 'off'">
-              {{ row.status === 1 ? '上架' : row.status === 2 ? '待审核' : '下架' }}
+            <span class="row-status" :class="row.status === 1 ? 'on' : row.status === 2 ? 'pending' : row.status === 3 ? 'rejected' : 'off'">
+              {{ row.status === 1 ? '上架' : row.status === 2 ? '待审核' : row.status === 3 ? '已拒绝' : '下架' }}
             </span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center">
           <template #default="{ row }">
             <button class="action-btn edit" @click="openEdit(row)">编辑</button>
-            <button v-if="row.status === 1 || row.status === 2" class="action-btn danger" @click="handleOffline(row.id)">下架</button>
+            <button v-if="row.status === 1 || row.status === 2 || row.status === 3" class="action-btn danger" @click="handleOffline(row.id)">下架</button>
           </template>
         </el-table-column>
       </el-table>
@@ -249,6 +259,8 @@ async function handleOffline(id) {
   color: #2c3e50;
 }
 .mini-num.online { color: #4caf50; }
+.mini-num.pending { color: #e6a23c; }
+.mini-num.rejected { color: #f56c6c; }
 .mini-label { font-size: 12px; color: #999; }
 
 /* 表格面板 */
@@ -281,6 +293,7 @@ async function handleOffline(id) {
 }
 .row-status.on { background: #e8f5e9; color: #4caf50; }
 .row-status.pending { background: #fff7e6; color: #e6a23c; }
+.row-status.rejected { background: #fef0f0; color: #f56c6c; }
 .row-status.off { background: #f5f5f5; color: #999; }
 
 .action-btn {

@@ -28,7 +28,7 @@ onMounted(async () => {
     } else {
       const friendNames = localStorage.getItem('friendNames')
       const names = friendNames ? JSON.parse(friendNames) : {}
-      activeConv.value = { otherUserId: Number(qUserId), otherUsername: names[qUserId] || '用户' }
+      activeConv.value = { otherUserId: qUserId, otherUsername: names[qUserId] || '用户' }
       messages.value = []
       await loadMessages(activeConv.value.otherUserId)
     }
@@ -36,11 +36,11 @@ onMounted(async () => {
 })
 
 watch(() => route.query.userId, async (val) => {
-  if (val && activeConv.value?.otherUserId !== Number(val)) {
+  if (val && String(activeConv.value?.otherUserId) !== val) {
     const conv = conversations.value.find(c => String(c.otherUserId) === val)
     if (conv) openConversation(conv)
     else {
-      activeConv.value = { otherUserId: Number(val), otherUsername: '用户' }
+      activeConv.value = { otherUserId: val, otherUsername: '用户' }
       messages.value = []
       await loadMessages(activeConv.value.otherUserId)
     }

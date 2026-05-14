@@ -60,7 +60,7 @@ CREATE TABLE `skill` (
     `price` INT NOT NULL COMMENT '定价（时间币/小时）',
     `available_time` VARCHAR(200) DEFAULT NULL COMMENT '可用时间段描述',
     `cover_image` VARCHAR(500) DEFAULT NULL COMMENT '封面图URL',
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0下架 1上架',
+    `status` TINYINT NOT NULL DEFAULT 2 COMMENT '状态: 0下架 1上架 2待审核 3已拒绝',
     `view_count` INT NOT NULL DEFAULT 0 COMMENT '浏览量',
     `order_count` INT NOT NULL DEFAULT 0 COMMENT '完成订单数',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

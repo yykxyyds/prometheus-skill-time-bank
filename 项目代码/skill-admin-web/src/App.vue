@@ -41,7 +41,7 @@ const navItems = [
         <router-view />
       </main>
       <footer class="admin-footer">
-        <span>&copy; 2026 Prometheus 技能时间银行 · 管理后台</span>
+        <span>&copy; 2026 Prometheus 技能时间银行</span>
       </footer>
     </div>
   </div>

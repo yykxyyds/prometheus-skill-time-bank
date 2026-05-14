@@ -222,21 +222,24 @@ function handleLogout() {
         <div class="footer-top">
           <div class="footer-brand">
             <span class="footer-logo">Prometheus</span>
-            <p class="footer-tagline">拒绝金钱交易，回归价值交换的技能互助平台</p>
+            <p class="footer-tagline">以时间币为纽带，让每个人的技能都有价值</p>
           </div>
           <div class="footer-links">
+            <span class="footer-link-heading">快速导航</span>
             <router-link to="/" class="footer-link">技能广场</router-link>
             <router-link to="/bounty" class="footer-link">需求悬赏</router-link>
-            <a href="https://github.com/yykxyyds/prometheus-skill-time-bank" class="footer-link" target="_blank">GitHub 项目</a>
+            <a class="footer-link" href="javascript:void(0)" @click="$router.push('/').then(() => {})">平台公告</a>
           </div>
-          <div class="footer-info">
-            <span>海南大学 · 第10组</span>
-            <span>指导教师：刘德才</span>
+          <div class="footer-links">
+            <span class="footer-link-heading">平台特色</span>
+            <span class="footer-link">时间币交易体系</span>
+            <span class="footer-link">双盲公正评价</span>
+            <span class="footer-link">技能供需匹配</span>
           </div>
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-          <span>&copy; 2026 Prometheus 技能时间银行 · 课程设计（学年论文）</span>
+          <span>&copy; 2026 Prometheus 技能时间银行</span>
         </div>
       </div>
     </footer>
@@ -594,22 +597,21 @@ function handleLogout() {
   flex-direction: column;
   gap: 8px;
 }
+.footer-link-heading {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
 .footer-link {
   font-size: 13px;
   color: rgba(255,255,255,0.55);
   text-decoration: none;
   transition: color 0.2s;
+  cursor: pointer;
 }
-.footer-link:hover {
+a.footer-link:hover {
   color: #f0a060;
-}
-.footer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.45);
-  text-align: right;
 }
 .footer-divider {
   height: 1px;
@@ -812,14 +814,10 @@ function handleLogout() {
     flex-direction: column;
     text-align: center;
     align-items: center;
+    gap: 20px;
   }
   .footer-links {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .footer-info {
-    text-align: center;
+    align-items: center;
   }
 }
 

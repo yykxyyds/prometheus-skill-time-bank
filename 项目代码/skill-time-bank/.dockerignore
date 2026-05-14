@@ -1,0 +1,3 @@
+**/target/*
+!skill-gateway/target/skill-gateway-1.0.2.jar
+.git

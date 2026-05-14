@@ -1,21 +1,28 @@
 <script setup>
-import { ref, onMounted, onActivated } from 'vue'
+import { ref, onMounted, onActivated, computed } from 'vue'
 import { getSkillList, getCategories } from '../api/skill'
 import api from '../api/index'
 import { Icon } from '@iconify/vue'
-import { useScrollReveal } from '../composables/useScrollReveal'
-import { ElMessage } from 'element-plus'
 
 const skills = ref([])
 const categories = ref([])
 const loading = ref(false)
-const query = ref({ page: 1, size: 12, categoryId: null, keyword: '', sort: '' })
+const query = ref({ page: 1, size: 50, categoryId: null, keyword: '', sort: '' })
 const total = ref(0)
 const heroStats = ref({ skillCount: 0, userCount: 0, orderCount: 0 })
 const announcements = ref([])
 const showAnnouncePopup = ref(false)
 
-useScrollReveal('.skill-card', { stagger: 80 })
+const CARDS_PER_ROW = 12
+
+// 把技能按行分组，每行 CARDS_PER_ROW 个
+const skillRows = computed(() => {
+  const rows = []
+  for (let i = 0; i < skills.value.length; i += CARDS_PER_ROW) {
+    rows.push(skills.value.slice(i, i + CARDS_PER_ROW))
+  }
+  return rows
+})
 
 async function loadData() {
   loading.value = true
@@ -62,14 +69,7 @@ function formatTime(t) {
 }
 
 async function search() {
-  query.value.page = 1
   await loadData()
-}
-
-function handlePageChange(page) {
-  query.value.page = page
-  loadData()
-  window.scrollTo({ top: 400, behavior: 'smooth' })
 }
 
 onMounted(async () => {
@@ -99,10 +99,10 @@ function categoryCover(catName) {
     <section class="hero">
       <div class="hero-content">
         <h1 class="hero-title">
-          用<span class="highlight">技能</span>交换<span class="highlight">时间</span>
+          <span class="highlight highlight-lg">学</span>你想学，<span class="highlight highlight-lg">教</span>你想教
         </h1>
         <p class="hero-subtitle">
-          拒绝金钱交易，回归价值交换。在这里，每个人的技能都值得被看见。
+          一个用时间币串起技能供需的互助社区。
         </p>
         <div class="hero-stats">
           <div class="stat-item">
@@ -122,10 +122,18 @@ function categoryCover(catName) {
         </div>
       </div>
       <div class="hero-visual">
-        <div class="floating-card card-1"><Icon icon="mdi:palette" class="fc-icon" /> 插画设计</div>
-        <div class="floating-card card-2"><Icon icon="mdi:laptop" class="fc-icon" /> Python编程</div>
-        <div class="floating-card card-3"><Icon icon="mdi:music" class="fc-icon" /> 吉他教学</div>
-        <div class="floating-card card-4"><Icon icon="mdi:book-open-page-variant" class="fc-icon" /> 英语翻译</div>
+        <!-- 设计 --><div class="bubble b1" style="color:#B0A3D4"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zM6.5 12c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>
+        <!-- 编程 --><div class="bubble b2" style="color:#8BAAC4"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M14.6 16.6l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4zm-5.2 0L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4z"/></svg></div>
+        <!-- 吉他 --><div class="bubble b3" style="color:#D4A585"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.5 2.5L22 5l-1.5 1.5L19 5l-2 2 1.5 1.5L17 10l-2-2-1.4 1.4A5.5 5.5 0 0 0 11 10.5V12H9v1c0 1.1-.9 2-2 2H6v1a3 3 0 0 0 3 3h1.5a5.5 5.5 0 0 0 2.6-6.4L14.5 11l2 2 1.5-1.5L16.5 10l2-2L20 9.5 21.5 8l-2-2L21 4.5 19.5 3 18 4.5 19.5 6l-1.5 1.5-1.5-1.5-2 2L13 6.5 14.5 5l-1.5-1.5L11.5 5 9.5 3 8 4.5 10.5 7l-1 1c-1.1-1.1-2.5-2-4.5-2C3.5 6 2 7.5 2 9.5S3.5 13 5.5 13c1.2 0 2.2-.5 3-1.2l2.5 2.5 1.5-1.5L10 10.5h.5a3.5 3.5 0 0 1 1.1-1.4L13 10.5l1.5-1.5-2-2z"/></svg></div>
+        <!-- 翻译 --><div class="bubble b4" style="color:#8EBF9E"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11 7.92 9.87 9.63 9 11.35 8.07 9.58 6.89 8 5.41 6.59L4 8c1.65 1.53 3.03 3.22 4.16 5.07-1.08.32-2.29.68-3.66 1.07l1 1.87c1.32-.37 2.51-.73 3.57-1.05l2.54 2.54L13 19h2v-3l3.5 3.5L20 18l-4.5-4.5L13 16v-2z"/></svg></div>
+        <!-- 咖啡 --><div class="bubble b5" style="color:#C4AA7A"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 21V19h20v2H2zm18-4H4V8c0-2.21 1.79-4 4-4h7c2.21 0 4 1.79 4 4v1h1c1.65 0 3 1.35 3 3v.5c0 1.65-1.35 3-3 3h-1v1zm0-3h1c.55 0 1-.45 1-1v-.5c0-.55-.45-1-1-1h-1v2.5z"/></svg></div>
+        <!-- 瑜伽 --><div class="bubble b6" style="color:#D49B9B"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2zm4.5 4h-3l-1 4.2L15 13v6h-2v-5l-1-1.5L10 19H7l3-7.5-1-2.5c-.5.8-1.3 1.5-2.5 2V14H5V9.5c1.5-.6 2.5-1.5 3-2.5.5-1 1-1.5 1.5-2h7c.6 0 1 .4 1 1s-.4 1-1 1z"/></svg></div>
+        <!-- 数学 --><div class="bubble b7" style="color:#9F9BCF"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h10v2H7V2zm0 4h2v2H7V6zm4 0h6v2h-6V6zm-4 4h2v2H7v-2zm4 0h6v2h-6v-2zm-4 4h2v2H7v-2zm4 0h6v2h-6v-2zm-4 4h2v2H7v-2zm4 0h6v2h-6v-2zM3 2h2v20H3V2zm16 0h2v20h-2V2z"/></svg></div>
+        <!-- 摄影 --><div class="bubble b8" style="color:#8EB4BF"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3z"/></svg></div>
+        <!-- 烹饪 --><div class="bubble b9" style="color:#D49B9F"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 1h2v6.6c-.6.3-1.2.7-1.7 1.1L6 1zm4 .1l.5 4.4c-.7.1-1.4.4-2 .7L8 1.3 10 1.1zm4 0l-.5 5.2c.7-.1 1.4-.3 2-.6L16 1.3l-2-.2zM18 1l-.5 6c.5.2 1 .5 1.5.8L19.5 1H18zM5 19h14v2H5v-2zm1-6h12s-1 5-6 5-6-5-6-5z"/></svg></div>
+        <!-- 演讲 --><div class="bubble b10" style="color:#B5A3D0"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3zm7 8a1 1 0 0 1 1 1 8 8 0 0 1-6.5 7.87V21H16v2H8v-2h2.5v-2.13A8 8 0 0 1 4 11a1 1 0 0 1 2 0 6 6 0 0 0 12 0 1 1 0 0 1 1-1z"/></svg></div>
+        <!-- 图表 --><div class="bubble b11" style="color:#8FBFAF"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11.78l4.24-4.24 1.41 1.41L16 14.6l-4.24-4.24-5.66 5.66-1.41-1.41L11.35 8l4.65 3.78zM4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h16V4H4z"/></svg></div>
+        <!-- 绘画 --><div class="bubble b12" style="color:#BFA87A"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M18.5 1.15c-.53 0-1.07.2-1.47.6l-1.44 1.44 3.22 3.22 1.44-1.44c.4-.4.6-.94.6-1.47 0-.53-.2-1.07-.6-1.47a2.05 2.05 0 0 0-1.47-.6h-.24l-.04-.08zM14.19 4.4L2 16.59V22h5.41L19.6 9.81 14.19 4.4z"/></svg></div>
       </div>
     </section>
 
@@ -161,7 +169,7 @@ function categoryCover(catName) {
       </div>
     </section>
 
-    <!-- 技能网格 -->
+    <!-- 技能滚动行 -->
     <section class="skills-section" v-loading="loading">
       <div class="section-header">
         <h2>技能广场</h2>
@@ -174,50 +182,85 @@ function categoryCover(catName) {
         :image-size="120"
       />
 
-      <div v-else class="skill-grid">
-        <article
-          v-for="(skill, idx) in skills"
-          :key="skill.id"
-          class="skill-card reveal-on-scroll"
-          @click="$router.push(`/skill/${skill.id}`)"
+      <div v-else class="scroll-rows">
+        <div
+          v-for="(row, rowIdx) in skillRows"
+          :key="rowIdx"
+          class="scroll-row"
         >
+          <div class="scroll-fade scroll-fade-left" />
+          <div class="scroll-fade scroll-fade-right" />
           <div
-            class="card-cover"
-            :style="skill.coverImage
-              ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: categoryCover(skill.categoryName).color + '10' }"
+            class="scroll-track"
+            :class="rowIdx % 2 === 0 ? 'scroll-left' : 'scroll-right'"
+            :style="{ animationDuration: row.length * 5 + 's' }"
           >
-            <template v-if="!skill.coverImage">
-              <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
-              <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
-            </template>
+            <!-- 原始卡片 -->
+            <article
+              v-for="skill in row"
+              :key="skill.id"
+              class="skill-card"
+              @click="$router.push(`/skill/${skill.id}`)"
+            >
+              <div
+                class="card-cover"
+                :style="skill.coverImage
+                  ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                  : { background: categoryCover(skill.categoryName).color + '10' }"
+              >
+                <template v-if="!skill.coverImage">
+                  <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
+                  <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
+                </template>
+              </div>
+              <div class="card-body">
+                <h3 class="card-title">{{ skill.title }}</h3>
+                <p class="card-desc">
+                  {{ skill.description?.substring(0, 60) }}{{ skill.description?.length > 60 ? '...' : '' }}
+                </p>
+                <div class="card-footer">
+                  <span class="card-price">
+                    <Icon icon="mdi:star" class="price-icon" />
+                    {{ skill.price }} 币/时
+                  </span>
+                  <span class="card-user">{{ skill.userName || '匿名' }}</span>
+                </div>
+              </div>
+            </article>
+            <!-- 复制一份实现无缝循环 -->
+            <article
+              v-for="skill in row"
+              :key="'dup-' + skill.id"
+              class="skill-card"
+              @click="$router.push(`/skill/${skill.id}`)"
+            >
+              <div
+                class="card-cover"
+                :style="skill.coverImage
+                  ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                  : { background: categoryCover(skill.categoryName).color + '10' }"
+              >
+                <template v-if="!skill.coverImage">
+                  <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
+                  <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
+                </template>
+              </div>
+              <div class="card-body">
+                <h3 class="card-title">{{ skill.title }}</h3>
+                <p class="card-desc">
+                  {{ skill.description?.substring(0, 60) }}{{ skill.description?.length > 60 ? '...' : '' }}
+                </p>
+                <div class="card-footer">
+                  <span class="card-price">
+                    <Icon icon="mdi:star" class="price-icon" />
+                    {{ skill.price }} 币/时
+                  </span>
+                  <span class="card-user">{{ skill.userName || '匿名' }}</span>
+                </div>
+              </div>
+            </article>
           </div>
-          <div class="card-body">
-            <h3 class="card-title">{{ skill.title }}</h3>
-            <p class="card-desc">
-              {{ skill.description?.substring(0, 60) }}{{ skill.description?.length > 60 ? '...' : '' }}
-            </p>
-            <div class="card-footer">
-              <span class="card-price">
-                <Icon icon="mdi:star" class="price-icon" />
-                {{ skill.price }} 币/时
-              </span>
-              <span class="card-user">{{ skill.userName || '匿名' }}</span>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <!-- 分页 -->
-      <div v-if="total > query.size" class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="query.page"
-          :page-size="query.size"
-          :total="total"
-          layout="prev, pager, next"
-          background
-          @current-change="handlePageChange"
-        />
+        </div>
       </div>
     </section>
 
@@ -282,6 +325,10 @@ function categoryCover(catName) {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.highlight-lg {
+  font-size: 56px;
+  font-weight: 900;
+}
 .hero-subtitle {
   font-size: 16px;
   color: #888;
@@ -316,32 +363,65 @@ function categoryCover(catName) {
   background: #e8e0d8;
 }
 
-/* 浮动卡片 */
+/* 浮动气泡 */
 .hero-visual {
   position: relative;
-  width: 320px;
-  height: 240px;
+  width: 400px;
+  height: 300px;
   flex-shrink: 0;
 }
-.floating-card {
+
+.bubble {
   position: absolute;
-  padding: 10px 20px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  font-size: 14px;
-  font-weight: 500;
-  color: #555;
-  animation: float 4s ease-in-out infinite;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1), 0 0 0 3px rgba(255,255,255,0.7);
+  animation: bobble var(--dur) ease-in-out infinite;
+  animation-delay: var(--delay);
+  cursor: default;
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+  z-index: 1;
+  color: #888;
 }
-.card-1 { top: 10px; left: 20px; animation-delay: 0s; }
-.card-2 { top: 60px; right: 0; animation-delay: 1s; }
-.card-3 { top: 130px; left: 40px; animation-delay: 2s; }
-.card-4 { top: 170px; right: 30px; animation-delay: 3s; }
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+.bubble svg {
+  width: var(--sz);
+  height: var(--sz);
+  color: #fff;
+}
+.bubble:hover {
+  transform: scale(1.3) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18), 0 0 0 6px rgba(255,255,255,0.8);
+  z-index: 20;
+}
+.bubble svg {
+  width: var(--sz);
+  height: var(--sz);
+}
+
+/* 气泡颜色已在模板 inline style 中 */
+
+/* 12 个气泡 — 随机散落，无规律不对称 */
+.b1  { --sz:28px; width:56px; height:56px; --dur:4.2s; --delay:0.0s; top:23px;   left:37px;   }
+.b2  { --sz:30px; width:60px; height:60px; --dur:5.4s; --delay:0.4s; top:68px;   left:312px;  }
+.b3  { --sz:24px; width:44px; height:44px; --dur:3.6s; --delay:0.8s; top:133px;  left:7px;    }
+.b4  { --sz:32px; width:64px; height:64px; --dur:6.0s; --delay:1.2s; top:12px;   left:178px;  }
+.b5  { --sz:22px; width:40px; height:40px; --dur:4.6s; --delay:1.6s; top:188px;  left:342px;  }
+.b6  { --sz:34px; width:68px; height:68px; --dur:5.8s; --delay:2.0s; top:92px;   left:128px;  }
+.b7  { --sz:26px; width:48px; height:48px; --dur:3.4s; --delay:2.4s; top:243px;  left:18px;   }
+.b8  { --sz:28px; width:52px; height:52px; --dur:5.0s; --delay:2.8s; top:157px;  left:292px;  }
+.b9  { --sz:32px; width:60px; height:60px; --dur:4.8s; --delay:3.2s; top:47px;   left:242px;  }
+.b10 { --sz:24px; width:44px; height:44px; --dur:4.0s; --delay:3.6s; top:223px;  left:348px;  }
+.b11 { --sz:30px; width:56px; height:56px; --dur:5.6s; --delay:4.0s; top:252px;  left:105px;  }
+.b12 { --sz:26px; width:48px; height:48px; --dur:3.8s; --delay:4.4s; top:178px;  left:82px;   }
+
+@keyframes bobble {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+  25%  { transform: translateY(-10px) translateX(4px) rotate(2deg); }
+  50%  { transform: translateY(-4px) translateX(-3px) rotate(-1deg); }
+  75%  { transform: translateY(-14px) translateX(2px) rotate(1deg); }
 }
 
 /* ========== 搜索区域 ========== */
@@ -367,10 +447,6 @@ function categoryCover(catName) {
 .search-icon {
   font-size: 20px;
   color: #bbb;
-  flex-shrink: 0;
-}
-.fc-icon {
-  font-size: 18px;
   flex-shrink: 0;
 }
 .search-input {
@@ -423,12 +499,61 @@ function categoryCover(catName) {
   color: #bbb;
 }
 
-/* 卡片网格 */
-.skill-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 20px;
+/* ========== 滚动行容器 ========== */
+.scroll-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
+.scroll-row {
+  position: relative;
+  overflow: hidden;
+}
+/* 左右渐变遮罩 */
+.scroll-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.scroll-fade-left {
+  left: 0;
+  background: linear-gradient(to right, #faf8f5 0%, transparent 100%);
+}
+.scroll-fade-right {
+  right: 0;
+  background: linear-gradient(to left, #faf8f5 0%, transparent 100%);
+}
+
+/* 滚动轨道 */
+.scroll-track {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+}
+.scroll-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes scrollLeft {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes scrollRight {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.scroll-left {
+  animation: scrollLeft 30s linear infinite;
+}
+.scroll-right {
+  animation: scrollRight 30s linear infinite;
+}
+
+/* 卡片 */
 .skill-card {
   background: #fff;
   border-radius: 14px;
@@ -436,6 +561,8 @@ function categoryCover(catName) {
   cursor: pointer;
   border: 1px solid #f0e8e0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  width: 260px;
 }
 .skill-card:hover {
   transform: translateY(-4px);
@@ -512,13 +639,6 @@ function categoryCover(catName) {
 .card-user {
   font-size: 12px;
   color: #bbb;
-}
-
-/* 分页 */
-.pagination-wrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 36px;
 }
 
 /* ========== 公告弹窗 ========== */

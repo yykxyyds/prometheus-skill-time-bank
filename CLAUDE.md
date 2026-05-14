@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 以"时间币"为核心的技能互助平台：用户通过提供技能赚取时间币，再用时间币消费他人技能。新人注册赠送100时间币（注意：产品设计文档写20，但代码实现是100）。
 
 - GitHub: https://github.com/yykxyyds/prometheus-skill-time-bank
-- 进度跟踪: `PROGRESS.md`（开发进度、API清单、下一步计划）
+- 进度跟踪: `document/PROGRESS.md`（开发进度、API清单、下一步计划）
 
 ## 技术栈
 
@@ -34,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `skill-common` | `com.prometheus.common` | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解、Jackson 日期格式化 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity`, `JacksonConfig` |
 | `skill-user-service` | `com.prometheus.user` | 注册/登录/个人信息/关注/文件上传 | `UserController`, `UploadController`, `User` entity |
 | `skill-skill-service` | `com.prometheus.skill` | 技能广场/发布/分类搜索/需求悬赏 | `SkillController`, `BountyController`, `CategoryController` |
-| `skill-order-service` | `com.prometheus.order` | 订单状态机/订单聊天(HTTP)/时间币冻结 | `OrderController`, `ChatController` |
+| `skill-order-service` | `com.prometheus.order` | 订单状态机/订单聊天(HTTP)/私信/时间币冻结 | `OrderController`, `ChatController`, `PrivateMessageController` |
 | `skill-wallet-service` | `com.prometheus.wallet` | 钱包余额/时间流水/双盲评价/申诉/公告 | `WalletController`, `ReviewController`, `AppealController`, `AnnouncementController` |
 | `skill-admin-service` | `com.prometheus.admin` | **管理员后台**：用户管理、技能审核、申诉处理、公告管理 | `AdminUserController`, `AdminSkillController`, `AdminAppealController`, `AdminAnnouncementController` |
 | `skill-gateway` | `com.prometheus.gateway` | **统一入口（不是网关）**：Spring Boot 主类 + CORS 配置，聚合启动 | `GatewayApplication`, `CorsConfig` |
@@ -60,7 +60,7 @@ cd 项目代码/skill-time-bank && mvn clean compile
 mvn clean package -DskipTests -pl skill-gateway -am
 
 # 启动后端（必须用 java -jar，不要用 spring-boot:run）
-java -jar 项目代码/skill-time-bank/skill-gateway/target/skill-gateway-1.0.0.jar
+java -jar 项目代码/skill-time-bank/skill-gateway/target/skill-gateway-1.0.2.jar
 
 # 编译单个模块
 mvn clean compile -pl skill-common -am
@@ -94,6 +94,31 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 "D:/MySQL/mysql-8.0.45-winx64/bin/mysql.exe" -u root -proot -h 127.0.0.1 -P 3306 prometheus_skill_bank
 ```
 
+## Docker 部署
+
+课程硬性要求容器化部署。`项目代码/docker-compose.yml` 编排 4 个服务：
+
+| 服务 | 容器名 | 端口 | 说明 |
+|------|--------|------|------|
+| mysql | prometheus-mysql | 3306 | MySQL 8.0，自动执行 init.sql |
+| backend | prometheus-backend | 8080 | JRE 17 Alpine，JAR 包 |
+| frontend-user | prometheus-frontend-user | 5173→80 | Nginx 托管用户端 |
+| frontend-admin | prometheus-frontend-admin | 5174→80 | Nginx 托管管理后台 |
+
+```bash
+# 启动全部服务（-d 后台）
+cd 项目代码 && docker compose up -d
+
+# 仅重建后端（代码改动后）
+docker compose up -d --build backend
+
+# 停止/清理
+docker compose down
+docker compose down -v   # 同时删除数据卷（重置数据库）
+```
+
+> Docker Compose 要求版本 ≥ 3.8，Docker Engine ≥ 20.10
+
 ## 前端架构
 
 项目有两个独立前端应用：
@@ -112,6 +137,7 @@ skill-time-bank-web/src/
 │   ├── SkillDetail.vue # 技能详情
 │   ├── Bounty.vue      # 需求悬赏列表
 │   ├── bounty/         # Create.vue（发布悬赏）, Detail.vue（悬赏详情）
+│   ├── Messages.vue    # 私信列表（会话列表+消息详情）
 │   ├── order/          # OrderList.vue（买方/卖方订单列表）, Detail.vue（订单详情+聊天+评价）
 │   └── user/           # Wallet, Profile, MySkills, Appeal（申诉提交）
 ├── App.vue
@@ -173,7 +199,7 @@ skill-admin-web/src/
 
 ## 核心 API 清单（已实现）
 
-所有接口前缀 `/api`。详细清单见 `PROGRESS.md` 第六节。
+所有接口前缀 `/api`。详细清单见 `document/PROGRESS.md` 第六节。
 
 **公开接口**（无需登录）:
 ```
@@ -196,6 +222,7 @@ GET  /api/announcement/{id} 公告详情
 - 悬赏: `POST /api/bounty`, `POST /api/bounty/{id}/apply`, `PUT /api/bounty/{id}/accept|reject|complete`
 - 订单: `POST /api/order`, `PUT /api/order/{id}/confirm|buyer-complete|seller-complete|cancel`, `GET /api/order/{id}|/buyer|/seller`
 - 聊天: `GET/POST /api/chat/order/{orderId}`
+- 私信: `POST /api/chat/private/send`, `GET /api/chat/private/conversations|/messages/{userId}|/unread`, `PUT /api/chat/private/read/{userId}`
 - 钱包: `GET /api/wallet/balance`, `GET /api/wallet/transactions`
 - 评价: `POST /api/review`
 - 申诉: `POST /api/appeal`
@@ -244,15 +271,13 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 ## 目录结构
 
 ```
-├── 项目要求/           # 课程要求 PDF/DOC
-├── 笔记/              # 设计阶段笔记（产品构思、架构设计、多Agent策略）
+├── document/          # 课程要求 PDF/DOC + 设计笔记 + 进度追踪
 ├── 项目代码/
 │   ├── database/init.sql          # 14张表 DDL + 初始数据
 │   ├── skill-time-bank/           # 后端 Maven 多模块工程（7 子模块）
 │   ├── skill-time-bank-web/       # 用户端 Vue 3 工程
 │   └── skill-admin-web/           # 管理后台 Vue 3 工程
 ├── 提交示例/           # 往届其他项目提交（医院预约挂号系统），仅格式参考
-├── PROGRESS.md        # 开发进度追踪（页面状态、API清单、下一步计划）
 ├── .claude/           # Claude Code 配置（settings.json: bypassPermissions）
 └── CLAUDE.md
 ```

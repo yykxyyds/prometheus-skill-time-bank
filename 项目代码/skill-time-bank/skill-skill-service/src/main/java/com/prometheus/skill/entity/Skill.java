@@ -35,7 +35,7 @@ public class Skill extends BaseEntity {
     /** 封面图片URL */
     private String coverImage;
 
-    /** 状态：1=上架 0=下架 */
+    /** 状态：0=下架 1=上架 2=待审核 3=已拒绝 */
     private Integer status;
 
     /** 浏览量 */

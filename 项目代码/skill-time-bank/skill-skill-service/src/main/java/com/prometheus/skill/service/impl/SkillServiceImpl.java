@@ -67,6 +67,7 @@ public class SkillServiceImpl implements SkillService {
         existing.setAvailableTime(skill.getAvailableTime());
         existing.setCoverImage(skill.getCoverImage());
         existing.setCategoryId(skill.getCategoryId());
+        existing.setStatus(2); // 修改后重新待审核
         existing.setUpdateTime(LocalDateTime.now());
         skillMapper.updateById(existing);
         log.info("技能 {} 已更新", skill.getId());
