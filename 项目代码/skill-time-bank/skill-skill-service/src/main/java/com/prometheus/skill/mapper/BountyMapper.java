@@ -20,7 +20,7 @@ public interface BountyMapper extends BaseMapper<Bounty> {
      * @param userId 当前登录用户 ID（type 不为 null 时必填）
      */
     @Select("<script>" +
-            "SELECT b.*, u.username AS user_name FROM bounty b " +
+            "SELECT b.*, u.username AS user_name, u.avatar AS user_avatar FROM bounty b " +
             "LEFT JOIN user u ON b.user_id = u.id " +
             "WHERE 1=1 " +
             "<if test='status != null'>AND b.status = #{status}</if>" +
@@ -33,7 +33,7 @@ public interface BountyMapper extends BaseMapper<Bounty> {
     Page<Bounty> selectPageWithUser(Page<Bounty> page, @Param("status") Integer status,
                                    @Param("type") String type, @Param("userId") Long userId);
 
-    @Select("SELECT b.*, u.username AS user_name FROM bounty b " +
+    @Select("SELECT b.*, u.username AS user_name, u.avatar AS user_avatar FROM bounty b " +
             "LEFT JOIN user u ON b.user_id = u.id " +
             "WHERE b.id = #{id}")
     Bounty selectByIdWithUser(@Param("id") Long id);

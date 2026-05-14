@@ -51,4 +51,8 @@ public class Skill extends BaseEntity {
     /** 发布者用户名（联表查询，非数据库字段） */
     @TableField(exist = false)
     private String userName;
+
+    /** 发布者头像（联表查询，非数据库字段） */
+    @TableField(exist = false)
+    private String userAvatar;
 }

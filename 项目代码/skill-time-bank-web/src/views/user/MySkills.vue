@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMySkills, offlineSkill, publishSkill, updateSkill, getCategories, uploadImage } from '../../api/skill'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Icon } from '@iconify/vue'
 
 const router = useRouter()
 const skills = ref([])
@@ -164,7 +165,7 @@ async function handleOffline(id) {
           <el-input v-model="form.description" type="textarea" :rows="4" placeholder="描述你的技能内容、服务方式..." />
         </div>
         <div class="form-row">
-          <label>封面图片</label>
+          <label>封面图片 <span class="label-hint">— 传一张和技能相关的图片更好看</span></label>
           <div class="cover-upload">
             <template v-if="form.coverImage">
               <div class="cover-preview">
@@ -175,8 +176,10 @@ async function handleOffline(id) {
             <template v-else>
               <label class="cover-upload-box" :class="{ loading: uploading }">
                 <input type="file" accept="image/*" hidden @change="handleCoverUpload" :disabled="uploading" />
+                <Icon v-if="!uploading" icon="mdi:image-plus" class="upload-placeholder-icon" />
                 <span v-if="uploading">上传中...</span>
                 <span v-else>+ 上传封面</span>
+                <span v-if="!uploading" class="upload-hint">支持 JPG/PNG，不超过 5MB</span>
               </label>
             </template>
           </div>
@@ -308,14 +311,21 @@ async function handleOffline(id) {
   color: #555;
   margin-bottom: 6px;
 }
+.label-hint {
+  font-weight: 400;
+  color: #bbb;
+  font-size: 12px;
+}
 
 /* 封面上传 */
 .cover-upload { }
 .cover-upload-box {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100px;
+  gap: 4px;
+  height: 110px;
   border: 2px dashed #e8e0d8;
   border-radius: 10px;
   cursor: pointer;
@@ -327,6 +337,14 @@ async function handleOffline(id) {
   border-color: #e8784a;
   color: #e8784a;
   background: #fdf9f6;
+}
+.upload-placeholder-icon {
+  font-size: 28px;
+  margin-bottom: 2px;
+}
+.upload-hint {
+  font-size: 11px;
+  color: #ccc;
 }
 .cover-upload-box.loading {
   pointer-events: none;

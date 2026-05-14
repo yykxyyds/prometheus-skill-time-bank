@@ -51,11 +51,9 @@ async function loadAnnouncements() {
   } catch (e) { /* silent */ }
 }
 
-function closeAnnouncePopup(dontShowToday = false) {
+function closeAnnouncePopup() {
   showAnnouncePopup.value = false
-  if (dontShowToday) {
-    localStorage.setItem('announce_last_shown', new Date().toDateString())
-  }
+  localStorage.setItem('announce_last_shown', new Date().toDateString())
 }
 
 function formatTime(t) {
@@ -80,15 +78,18 @@ onMounted(async () => {
 })
 onActivated(loadData)
 
-const coverColors = [
-  'linear-gradient(135deg, #e8784a, #f0a060)',
-  'linear-gradient(135deg, #e8784a, #d06840)',
-  'linear-gradient(135deg, #f0a060, #e8784a)',
-  'linear-gradient(135deg, #e89050, #d87040)',
-  'linear-gradient(135deg, #f0a060, #c86038)',
-]
-function coverColor(index) {
-  return coverColors[index % coverColors.length]
+const categoryCovers = {
+  '编程开发': { icon: 'mdi:code-braces', color: '#4361ee' },
+  '设计创意': { icon: 'mdi:palette-swatch-outline', color: '#e8784a' },
+  '语言学习': { icon: 'mdi:translate', color: '#4caf50' },
+  '音乐艺术': { icon: 'mdi:music-clef-treble', color: '#e91e63' },
+  '运动健身': { icon: 'mdi:run-fast', color: '#ff9800' },
+  '学术辅导': { icon: 'mdi:school-outline', color: '#2196f3' },
+  '生活技能': { icon: 'mdi:hand-heart-outline', color: '#9c27b0' },
+  '职场咨询': { icon: 'mdi:briefcase-account-outline', color: '#607d8b' },
+}
+function categoryCover(catName) {
+  return categoryCovers[catName] || { icon: 'mdi:star', color: '#e8784a' }
 }
 </script>
 
@@ -180,9 +181,14 @@ function coverColor(index) {
           class="skill-card reveal-on-scroll"
           @click="$router.push(`/skill/${skill.id}`)"
         >
-          <div class="card-cover" :style="skill.coverImage ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: coverColor(idx) }">
+          <div
+            class="card-cover"
+            :style="skill.coverImage
+              ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: categoryCover(skill.categoryName).color + '10' }"
+          >
             <template v-if="!skill.coverImage">
-              <span class="cover-letter">{{ skill.title?.charAt(0) }}</span>
+              <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
               <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
             </template>
           </div>
@@ -228,8 +234,7 @@ function coverColor(index) {
         </article>
       </div>
       <template #footer>
-        <span class="dialog-footer-hint" @click="closeAnnouncePopup(true)">今日不再显示</span>
-        <el-button type="primary" @click="closeAnnouncePopup(false)">知道了</el-button>
+        <el-button type="primary" @click="closeAnnouncePopup()">知道了</el-button>
       </template>
     </el-dialog>
   </div>
@@ -446,11 +451,14 @@ function coverColor(index) {
   justify-content: center;
   position: relative;
 }
-.cover-letter {
-  font-size: 48px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.85);
-  text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.cover-cat-icon {
+  font-size: 42px;
+  opacity: 0.35;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.skill-card:hover .cover-cat-icon {
+  transform: scale(1.1);
+  opacity: 0.5;
 }
 .cover-category {
   position: absolute;
@@ -556,15 +564,5 @@ function coverColor(index) {
 .popup-announce-time {
   font-size: 12px;
   color: #bbb;
-}
-.dialog-footer-hint {
-  font-size: 13px;
-  color: #bbb;
-  cursor: pointer;
-  float: left;
-  line-height: 32px;
-}
-.dialog-footer-hint:hover {
-  color: #e8784a;
 }
 </style>

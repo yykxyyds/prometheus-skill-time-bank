@@ -17,7 +17,7 @@ public interface SkillMapper extends BaseMapper<Skill> {
      * 分页查询上架技能（联表查分类名称）
      */
     @Select("<script>" +
-            "SELECT s.*, c.name AS category_name, u.username AS user_name FROM skill s " +
+            "SELECT s.*, c.name AS category_name, u.username AS user_name, u.avatar AS user_avatar FROM skill s " +
             "LEFT JOIN skill_category c ON s.category_id = c.id " +
             "LEFT JOIN user u ON s.user_id = u.id " +
             "WHERE s.status = 1 " +
@@ -34,4 +34,11 @@ public interface SkillMapper extends BaseMapper<Skill> {
                                    @Param("categoryId") Long categoryId,
                                    @Param("keyword") String keyword,
                                    @Param("sort") String sort);
+
+    @Select("SELECT s.*, c.name AS category_name, u.username AS user_name, u.avatar AS user_avatar " +
+            "FROM skill s " +
+            "LEFT JOIN skill_category c ON s.category_id = c.id " +
+            "LEFT JOIN user u ON s.user_id = u.id " +
+            "WHERE s.id = #{id}")
+    Skill selectByIdWithUser(@Param("id") Long id);
 }

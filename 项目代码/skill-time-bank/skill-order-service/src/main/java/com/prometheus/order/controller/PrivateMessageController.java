@@ -27,7 +27,11 @@ public class PrivateMessageController {
     public Result<PrivateMessage> sendMessage(@RequestBody Map<String, Object> body,
                                                HttpServletRequest request) {
         Long senderId = getUserId(request);
-        Long receiverId = Long.valueOf(body.get("receiverId").toString());
+        Object receiverIdObj = body.get("receiverId");
+        if (receiverIdObj == null) {
+            throw new com.prometheus.common.BusinessException(400, "缺少必要参数(receiverId)");
+        }
+        Long receiverId = Long.valueOf(receiverIdObj.toString());
         String content = (String) body.get("content");
         return Result.success(privateMessageService.sendMessage(senderId, receiverId, content));
     }

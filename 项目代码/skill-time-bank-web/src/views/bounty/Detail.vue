@@ -5,7 +5,7 @@ import { useUserStore } from '../../stores/user'
 import api from '../../api/index'
 import { Icon } from '@iconify/vue'
 import { ElMessage } from 'element-plus'
-import { getUserProfile } from '../../api/user'
+import { getUserProfile, followUser, unfollowUser, getFollowStatus } from '../../api/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,16 +14,48 @@ const bounty = ref({})
 const loading = ref(false)
 const applying = ref(false)
 const applyMsg = ref('')
+const isFollowed = ref(false)
+const followLoading = ref(false)
 
 onMounted(async () => {
   loading.value = true
   try {
     const res = await api.get(`/bounty/${route.params.id}`)
     bounty.value = res.data || {}
+    if (userStore.isLoggedIn && bounty.value.userId && bounty.value.userId !== userStore.userId) {
+      checkFollowStatus()
+    }
   } finally {
     loading.value = false
   }
 })
+
+async function checkFollowStatus() {
+  try {
+    const res = await getFollowStatus(bounty.value.userId)
+    isFollowed.value = res.data?.isFollowing || false
+  } catch { /* ignore */ }
+}
+
+async function toggleFollow() {
+  if (!userStore.isLoggedIn) {
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+    return
+  }
+  followLoading.value = true
+  try {
+    if (isFollowed.value) {
+      await unfollowUser(bounty.value.userId)
+      isFollowed.value = false
+      ElMessage.success('已取消关注')
+    } else {
+      await followUser(bounty.value.userId)
+      isFollowed.value = true
+      ElMessage.success('已关注')
+    }
+  } catch { /* handled */ }
+  finally { followLoading.value = false }
+}
 
 const statusMap = {
   1: { label: '已发布', color: '#e6a23c', bg: '#fdf6ec' },
@@ -215,9 +247,28 @@ async function handleComplete() {
             <span class="reward-label">时间币悬赏</span>
           </div>
           <div class="side-info">
-            <div class="info-row">
-              <span>发布者</span>
-              <span class="clickable" @click="router.push(`/profile/${bounty.userId}`)">{{ bounty.userName || '未知' }}</span>
+            <!-- 发布者卡片 -->
+            <div class="publisher-card">
+              <div class="publisher-avatar" @click="router.push(`/profile/${bounty.userId}`)">
+                <img v-if="bounty.userAvatar" :src="bounty.userAvatar" class="avatar-img" @error="$event.target.style.display='none'" />
+                <span v-show="!bounty.userAvatar" class="avatar-letter">{{ (bounty.userName || '?').charAt(0) }}</span>
+              </div>
+              <div class="publisher-name" @click="router.push(`/profile/${bounty.userId}`)">
+                {{ bounty.userName || '未知' }}
+              </div>
+              <div class="publisher-actions" v-if="userStore.isLoggedIn && !isOwner">
+                <button
+                  class="follow-sm-btn"
+                  :class="{ followed: isFollowed }"
+                  :disabled="followLoading"
+                  @click="toggleFollow"
+                >
+                  {{ followLoading ? '...' : (isFollowed ? '已关注' : '+ 关注') }}
+                </button>
+                <button class="msg-sm-btn" @click="router.push(`/messages?userId=${bounty.userId}`)">
+                  <Icon icon="mdi:message-text" /> 私信
+                </button>
+              </div>
             </div>
             <div class="info-row">
               <span>发布时间</span>
@@ -526,4 +577,94 @@ async function handleComplete() {
   cursor: pointer;
 }
 .clickable:hover { text-decoration: underline; }
+
+/* 发布者卡片（右侧信息卡内） */
+.publisher-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f5f0eb;
+  margin-bottom: 4px;
+}
+.publisher-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f0a060, #e8784a);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.publisher-avatar:hover {
+  box-shadow: 0 2px 12px rgba(232,120,74,0.3);
+}
+.publisher-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.publisher-avatar .avatar-letter {
+  /* Styled by parent */;
+}
+.publisher-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+.publisher-name:hover {
+  color: #e8784a;
+}
+.publisher-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.follow-sm-btn, .msg-sm-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.follow-sm-btn {
+  border: 1px solid #e8784a;
+  background: #fff;
+  color: #e8784a;
+}
+.follow-sm-btn:hover:not(:disabled) {
+  background: rgba(232,120,74,0.06);
+}
+.follow-sm-btn.followed {
+  background: #f5f0eb;
+  color: #999;
+  border-color: #ddd;
+}
+.follow-sm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.msg-sm-btn {
+  border: 1px solid #f0c8b0;
+  background: #fff;
+  color: #e8784a;
+}
+.msg-sm-btn:hover {
+  background: rgba(232,120,74,0.06);
+  border-color: #e8784a;
+}
 </style>

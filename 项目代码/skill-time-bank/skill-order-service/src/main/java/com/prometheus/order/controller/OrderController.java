@@ -27,9 +27,15 @@ public class OrderController {
     public Result<SkillOrder> createOrder(@RequestBody Map<String, Object> body,
                                            HttpServletRequest request) {
         Long buyerId = getUserId(request);
-        Long sellerId = Long.valueOf(body.get("sellerId").toString());
-        Long skillId = Long.valueOf(body.get("skillId").toString());
-        Integer amount = Integer.valueOf(body.get("amount").toString());
+        Object sellerIdObj = body.get("sellerId");
+        Object skillIdObj = body.get("skillId");
+        Object amountObj = body.get("amount");
+        if (sellerIdObj == null || skillIdObj == null || amountObj == null) {
+            throw new com.prometheus.common.BusinessException(400, "缺少必要参数(sellerId/skillId/amount)");
+        }
+        Long sellerId = Long.valueOf(sellerIdObj.toString());
+        Long skillId = Long.valueOf(skillIdObj.toString());
+        Integer amount = Integer.valueOf(amountObj.toString());
         String contactPhone = (String) body.get("contactPhone");
         String appointmentTime = (String) body.get("appointmentTime");
         String appointmentLocation = (String) body.get("appointmentLocation");

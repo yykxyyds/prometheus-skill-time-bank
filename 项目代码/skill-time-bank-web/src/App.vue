@@ -8,6 +8,8 @@ import api from './api/index'
 const userStore = useUserStore()
 const router = useRouter()
 const menuOpen = ref(false)
+const avatarMenuOpen = ref(false)
+const userAvatar = ref('')
 const announcements = ref([])
 const showAnnouncePanel = ref(false)
 const loadingAnnounce = ref(false)
@@ -16,15 +18,30 @@ let unreadTimer = null
 
 onMounted(() => {
   loadUnread()
+  loadAvatar()
   unreadTimer = setInterval(loadUnread, 30000)
+  document.addEventListener('click', onDocClick)
 })
 
 onUnmounted(() => {
   if (unreadTimer) clearInterval(unreadTimer)
+  document.removeEventListener('click', onDocClick)
 })
 
+function onDocClick() {
+  avatarMenuOpen.value = false
+}
+
+async function loadAvatar() {
+  if (!userStore.isLoggedIn) return
+  try {
+    const res = await api.get('/user/profile')
+    userAvatar.value = res.data?.avatar || ''
+  } catch { /* silent */ }
+}
+
 async function loadUnread() {
-  if (!useUserStore().isLoggedIn) { unreadCount.value = 0; return }
+  if (!userStore.isLoggedIn) { unreadCount.value = 0; return }
   try {
     const res = await api.get('/chat/private/unread')
     unreadCount.value = res.data || 0
@@ -54,12 +71,20 @@ function formatTime(t) {
 function closeMenu() {
   menuOpen.value = false
 }
+
+function handleLogout() {
+  avatarMenuOpen.value = false
+  userAvatar.value = ''
+  userStore.logout()
+  router.push('/')
+  closeMenu()
+}
 </script>
 
 <template>
   <div id="app">
     <!-- 顶部导航 -->
-    <header class="app-header" :class="{ scrolled: true }">
+    <header class="app-header">
       <div class="header-inner">
         <router-link to="/" class="logo-group" @click="closeMenu">
           <span class="logo-icon">P</span>
@@ -77,36 +102,52 @@ function closeMenu() {
           <a class="nav-item" style="cursor:pointer" @click="loadAnnouncements">
             <Icon icon="mdi:bullhorn" class="nav-icon" />公告
           </a>
-
-          <template v-if="userStore.isLoggedIn">
-            <router-link to="/orders/buyer" class="nav-item" active-class="nav-active" @click="closeMenu">
-              <Icon icon="mdi:clipboard-list" class="nav-icon" />我的订单
-            </router-link>
-            <router-link to="/my-skills" class="nav-item" active-class="nav-active" @click="closeMenu">
-              <Icon icon="mdi:briefcase" class="nav-icon" />我的技能
-            </router-link>
-            <router-link to="/messages" class="nav-item" active-class="nav-active" @click="closeMenu">
-              <Icon icon="mdi:message-text" class="nav-icon" />消息
-              <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-            </router-link>
-            <router-link to="/wallet" class="nav-item" active-class="nav-active" @click="closeMenu">
-              <Icon icon="mdi:bank" class="nav-icon" />时间银行
-            </router-link>
-            <router-link to="/profile" class="nav-item" active-class="nav-active" @click="closeMenu">
-              <Icon icon="mdi:account-circle" class="nav-icon" />个人中心
-            </router-link>
-          </template>
-          <template v-else>
+          <template v-if="!userStore.isLoggedIn">
             <router-link to="/login" class="nav-item nav-login" active-class="nav-active" @click="closeMenu">
               登录
             </router-link>
           </template>
         </nav>
 
+        <!-- 右侧：消息 + 时间币 + 头像 -->
         <div class="header-right">
           <template v-if="userStore.isLoggedIn">
-            <span class="coin-badge">{{ userStore.balance || 0 }} 币</span>
-<button class="logout-btn" @click="userStore.logout(); router.push('/'); closeMenu()">退出</button>
+            <router-link to="/messages" class="icon-btn" title="消息">
+              <Icon icon="mdi:message-text" class="icon-btn-icon" />
+              <span v-if="unreadCount > 0" class="icon-btn-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            </router-link>
+            <div class="avatar-wrap" @click.stop="avatarMenuOpen = !avatarMenuOpen">
+              <img v-if="userAvatar" :src="userAvatar" class="avatar-img" />
+              <span v-else class="avatar-text">{{ userStore.username?.charAt(0) || '?' }}</span>
+              <Icon icon="mdi:chevron-down" class="avatar-arrow" :class="{ flip: avatarMenuOpen }" />
+              <div v-if="avatarMenuOpen" class="avatar-dropdown" @click.stop>
+                <div class="avatar-dropdown-header">
+                  <img v-if="userAvatar" :src="userAvatar" class="ad-avatar" />
+                  <span v-else class="ad-avatar ad-avatar-text">{{ userStore.username?.charAt(0) || '?' }}</span>
+                  <div>
+                    <div class="ad-name">{{ userStore.username }}</div>
+                    <div class="ad-balance">{{ userStore.balance || 0 }} 时间币</div>
+                  </div>
+                </div>
+                <div class="ad-divider"></div>
+                <router-link to="/orders/buyer" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
+                  <Icon icon="mdi:clipboard-list" />我的订单
+                </router-link>
+                <router-link to="/my-skills" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
+                  <Icon icon="mdi:briefcase" />我的技能
+                </router-link>
+                <router-link to="/wallet" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
+                  <Icon icon="mdi:bank" />时间银行
+                </router-link>
+                <router-link to="/profile" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
+                  <Icon icon="mdi:account-circle" />个人信息
+                </router-link>
+                <div class="ad-divider"></div>
+                <a class="ad-item ad-logout" @click="handleLogout">
+                  <Icon icon="mdi:logout" />退出登录
+                </a>
+              </div>
+            </div>
           </template>
         </div>
 
@@ -134,26 +175,25 @@ function closeMenu() {
 
             <template v-if="userStore.isLoggedIn">
               <div class="drawer-divider"></div>
+              <router-link to="/messages" class="drawer-item" active-class="nav-active" @click="closeMenu">
+                <Icon icon="mdi:message-text" />消息
+                <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </router-link>
               <router-link to="/orders/buyer" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:clipboard-list" />我的订单
               </router-link>
               <router-link to="/my-skills" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:briefcase" />我的技能
               </router-link>
-              <router-link to="/messages" class="drawer-item" active-class="nav-active" @click="closeMenu">
-                <Icon icon="mdi:message-text" />消息
-                <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-              </router-link>
               <router-link to="/wallet" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:bank" />时间银行
               </router-link>
               <router-link to="/profile" class="drawer-item" active-class="nav-active" @click="closeMenu">
-                <Icon icon="mdi:account-circle" />个人中心
+                <Icon icon="mdi:account-circle" />个人信息
               </router-link>
               <div class="drawer-divider"></div>
               <div class="drawer-footer-info">
-                <span class="coin-badge">{{ userStore.balance || 0 }} 币</span>
-<button class="logout-btn" @click="userStore.logout(); router.push('/'); closeMenu()">退出登录</button>
+                <button class="logout-btn" @click="handleLogout">退出登录</button>
               </div>
             </template>
             <template v-else>
@@ -230,7 +270,7 @@ function closeMenu() {
   background: #faf8f5;
 }
 
-/* ========== 顶部导航 - 玻璃拟态 ========== */
+/* ========== 顶部导航 ========== */
 .app-header {
   position: sticky;
   top: 0;
@@ -240,7 +280,6 @@ function closeMenu() {
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(232, 120, 74, 0.12);
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
 }
 .header-inner {
   max-width: 1200px;
@@ -285,6 +324,7 @@ function closeMenu() {
   display: flex;
   gap: 4px;
   flex: 1;
+  justify-content: center;
 }
 .nav-item {
   padding: 8px 16px;
@@ -335,36 +375,166 @@ function closeMenu() {
   box-shadow: 0 4px 12px rgba(232, 120, 74, 0.3);
 }
 
-/* 右侧区域 */
+/* ========== 右侧区域 ========== */
 .header-right {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
-.coin-badge {
-  background: linear-gradient(135deg, #f0a060, #e8784a);
-  color: #fff;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  box-shadow: 0 2px 8px rgba(232, 120, 74, 0.25);
-}
-.logout-btn {
-  background: none;
-  border: none;
-  color: #999;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 6px;
+
+/* 消息图标按钮 */
+.icon-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
+  text-decoration: none;
+  color: #555;
 }
-.logout-btn:hover {
+.icon-btn:hover {
+  background: rgba(232, 120, 74, 0.08);
   color: #e8784a;
+}
+.icon-btn-icon {
+  font-size: 22px;
+}
+.icon-btn-badge {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  background: #f56c6c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 8px;
+  padding: 0 5px;
+  box-shadow: 0 1px 3px rgba(245,108,108,0.4);
+}
+
+/* ========== 头像下拉 ========== */
+.avatar-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+.avatar-wrap:hover {
   background: rgba(232, 120, 74, 0.06);
+}
+.avatar-img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f0e8e0;
+}
+.avatar-text {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+.avatar-arrow {
+  font-size: 16px;
+  color: #999;
+  transition: transform 0.2s;
+}
+.avatar-arrow.flip {
+  transform: rotate(180deg);
+}
+
+/* 头像下拉菜单 */
+.avatar-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid #f0e8e0;
+  min-width: 200px;
+  padding: 4px 0;
+  z-index: 1100;
+}
+.avatar-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.ad-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.ad-avatar-text {
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ad-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+.ad-balance {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+.ad-divider {
+  height: 1px;
+  background: #f0e8e0;
+  margin: 4px 12px;
+}
+.ad-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #555;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.ad-item:hover {
+  background: rgba(232, 120, 74, 0.06);
+  color: #e8784a;
+}
+.ad-logout {
+  color: #999;
+  cursor: pointer;
+}
+.ad-logout:hover {
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.06);
 }
 
 /* ========== 主体区域 ========== */
@@ -573,10 +743,7 @@ function closeMenu() {
   gap: 10px;
   padding: 8px 24px;
 }
-.drawer-footer-info .coin-badge {
-  align-self: flex-start;
-}
-.drawer-footer-info .logout-btn {
+.logout-btn {
   align-self: flex-start;
   padding: 8px 16px;
   background: #f5f5f5;
@@ -585,8 +752,9 @@ function closeMenu() {
   color: #666;
   font-size: 14px;
   cursor: pointer;
+  border: none;
 }
-.drawer-footer-info .logout-btn:hover {
+.logout-btn:hover {
   background: #fee;
   color: #f56c6c;
 }
@@ -609,7 +777,7 @@ function closeMenu() {
   transform: translateX(-100%);
 }
 
-/* ========== 响应式：小屏幕 ========== */
+/* ========== 响应式 ========== */
 @media (max-width: 900px) {
   .main-nav {
     display: none !important;
@@ -640,7 +808,6 @@ function closeMenu() {
     padding: 16px 12px 32px;
   }
 
-  /* 页脚响应式 */
   .footer-top {
     flex-direction: column;
     text-align: center;

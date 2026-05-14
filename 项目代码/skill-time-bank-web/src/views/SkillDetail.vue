@@ -6,6 +6,7 @@ import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
 import api from '../api/index'
 import { Icon } from '@iconify/vue'
+import { followUser, unfollowUser, getFollowStatus } from '../api/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,16 +15,48 @@ const skill = ref({})
 const loading = ref(false)
 const orderForm = ref({ hours: 1, phone: '', appointmentTime: '', appointmentLocation: '', plan: '' })
 const ordering = ref(false)
+const isFollowed = ref(false)
+const followLoading = ref(false)
 
 onMounted(async () => {
   loading.value = true
   try {
     const res = await getSkillDetail(route.params.id)
     skill.value = res.data || {}
+    if (userStore.isLoggedIn && skill.value.userId && skill.value.userId !== userStore.userId) {
+      checkFollowStatus()
+    }
   } finally {
     loading.value = false
   }
 })
+
+async function checkFollowStatus() {
+  try {
+    const res = await getFollowStatus(skill.value.userId)
+    isFollowed.value = res.data?.isFollowing || false
+  } catch { /* ignore */ }
+}
+
+async function toggleFollow() {
+  if (!userStore.isLoggedIn) {
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+    return
+  }
+  followLoading.value = true
+  try {
+    if (isFollowed.value) {
+      await unfollowUser(skill.value.userId)
+      isFollowed.value = false
+      ElMessage.success('已取消关注')
+    } else {
+      await followUser(skill.value.userId)
+      isFollowed.value = true
+      ElMessage.success('已关注')
+    }
+  } catch { /* handled */ }
+  finally { followLoading.value = false }
+}
 
 async function handleOrder() {
   if (!userStore.isLoggedIn) {
@@ -99,11 +132,23 @@ async function handleOrder() {
             <div class="seller-section" v-if="skill.userName">
               <h3>技能提供者</h3>
               <div class="seller-card">
-                <div class="seller-avatar" @click="router.push(`/profile/${skill.userId}`)">{{ skill.userName?.charAt(0) }}</div>
+                <div class="seller-avatar" @click="router.push(`/profile/${skill.userId}`)">
+                  <img v-if="skill.userAvatar" :src="skill.userAvatar" class="avatar-img" @error="$event.target.style.display='none'" />
+                  <span v-show="!skill.userAvatar" class="avatar-letter">{{ skill.userName?.charAt(0) }}</span>
+                </div>
                 <div class="seller-info" @click="router.push(`/profile/${skill.userId}`)">
                   <span class="seller-name">{{ skill.userName }}</span>
                   <span class="seller-hint">点击查看主页</span>
                 </div>
+                <button
+                  v-if="userStore.isLoggedIn && skill.userId !== userStore.userId"
+                  class="follow-btn"
+                  :class="{ followed: isFollowed }"
+                  :disabled="followLoading"
+                  @click="toggleFollow"
+                >
+                  {{ followLoading ? '...' : (isFollowed ? '已关注' : '+ 关注') }}
+                </button>
                 <button v-if="userStore.isLoggedIn && skill.userId !== userStore.userId" class="msg-seller-btn" @click="router.push(`/messages?userId=${skill.userId}`)">
                   <Icon icon="mdi:message-text" /> 发私信
                 </button>
@@ -289,7 +334,6 @@ async function handleOrder() {
   cursor: pointer;
 }
 .msg-seller-btn {
-  margin-left: auto;
   padding: 7px 16px;
   background: linear-gradient(135deg, #e8784a, #f0a060);
   color: #fff;
@@ -320,6 +364,43 @@ async function handleOrder() {
   justify-content: center;
   font-weight: 700;
   font-size: 18px;
+  flex-shrink: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-letter {
+  /* Styled by parent .seller-avatar */;
+}
+.follow-btn {
+  padding: 7px 16px;
+  border: 1px solid #e8784a;
+  background: #fff;
+  color: #e8784a;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.follow-btn:hover:not(:disabled) {
+  background: rgba(232,120,74,0.06);
+}
+.follow-btn.followed {
+  background: #f5f0eb;
+  color: #999;
+  border-color: #ddd;
+}
+.follow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .seller-info {
   display: flex;

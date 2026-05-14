@@ -1,7 +1,7 @@
 -- ============================================
 -- Prometheus 技能时间银行 - 数据库初始化脚本
 -- 数据库: prometheus_skill_bank
--- 表数量: 14 张
+-- 表数量: 15 张
 -- MySQL 8.0+
 -- ============================================
 
@@ -279,6 +279,23 @@ CREATE TABLE `user_skill_tag` (
     UNIQUE KEY `uk_user_tag` (`user_id`, `tag_name`),
     KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户技能标签表（雷达图维度）';
+
+-- ============================================
+-- 15. 私信消息表
+-- ============================================
+CREATE TABLE `private_message` (
+    `id` BIGINT NOT NULL COMMENT '消息ID',
+    `sender_id` BIGINT NOT NULL COMMENT '发送者用户ID',
+    `receiver_id` BIGINT NOT NULL COMMENT '接收者用户ID',
+    `content` VARCHAR(1000) NOT NULL COMMENT '消息内容',
+    `is_read` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读: 0未读 1已读',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_sender_receiver` (`sender_id`, `receiver_id`),
+    KEY `idx_receiver_read` (`receiver_id`, `is_read`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='私信消息表';
 
 -- ============================================
 -- 初始化数据

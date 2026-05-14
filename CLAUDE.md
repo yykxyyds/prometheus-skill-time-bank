@@ -27,15 +27,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 模块架构（已实现）
 
-父项目 `skill-time-bank`，`groupId=com.prometheus`，`version=1.0.0`，6 个子模块：
+父项目 `skill-time-bank`，`groupId=com.prometheus`，`version=1.0.2`，7 个子模块：
 
 | 子模块 | 包路径 | 职责 | 关键类 |
 |--------|--------|------|--------|
-| `skill-common` | `com.prometheus.common` | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity` |
-| `skill-user-service` | `com.prometheus.user` | 注册/登录/个人信息/关注 | `UserController`, `User` entity |
+| `skill-common` | `com.prometheus.common` | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解、Jackson 日期格式化 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity`, `JacksonConfig` |
+| `skill-user-service` | `com.prometheus.user` | 注册/登录/个人信息/关注/文件上传 | `UserController`, `UploadController`, `User` entity |
 | `skill-skill-service` | `com.prometheus.skill` | 技能广场/发布/分类搜索/需求悬赏 | `SkillController`, `BountyController`, `CategoryController` |
 | `skill-order-service` | `com.prometheus.order` | 订单状态机/订单聊天(HTTP)/时间币冻结 | `OrderController`, `ChatController` |
 | `skill-wallet-service` | `com.prometheus.wallet` | 钱包余额/时间流水/双盲评价/申诉/公告 | `WalletController`, `ReviewController`, `AppealController`, `AnnouncementController` |
+| `skill-admin-service` | `com.prometheus.admin` | **管理员后台**：用户管理、技能审核、申诉处理、公告管理 | `AdminUserController`, `AdminSkillController`, `AdminAppealController`, `AdminAnnouncementController` |
 | `skill-gateway` | `com.prometheus.gateway` | **统一入口（不是网关）**：Spring Boot 主类 + CORS 配置，聚合启动 | `GatewayApplication`, `CorsConfig` |
 
 每个业务模块内部采用 `controller → service → mapper` 分层。module 间通过直接依赖引用（非 RPC）。
@@ -43,9 +44,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Gateway 说明
 
 `skill-gateway` 不是 Spring Cloud Gateway，只是一个聚合启动模块：
-- `@ComponentScan("com.prometheus")` — 扫描所有模块的 bean
+- `@ComponentScan("com.prometheus")` — 扫描所有 7 个模块的 bean
 - `@MapperScan(...)` — 扫描所有模块的 MyBatis mapper
 - `CorsConfig` — 处理跨域
+- 依赖所有 6 个业务模块（common/user/skill/order/wallet/admin）
 - **后端入口只有这一个**，端口 8080
 
 ## 常用命令
@@ -63,8 +65,18 @@ java -jar 项目代码/skill-time-bank/skill-gateway/target/skill-gateway-1.0.0.
 # 编译单个模块
 mvn clean compile -pl skill-common -am
 
-# 启动前端
-cd 项目代码/skill-time-bank-web && npm run dev
+# 导入测试数据（init.sql 仅基础数据，需 seed 脚本才有业务演示数据）
+MSQL="D:/MySQL/mysql-8.0.45-winx64/bin/mysql.exe -u root -proot -h 127.0.0.1 -P 3306 prometheus_skill_bank"
+$MSQL < 项目代码/database/seed_demo.sql
+
+# 启动用户前端（端口 5173，首次需 npm install）
+cd 项目代码/skill-time-bank-web && npm install && npm run dev
+
+# 启动管理后台（端口 5174，首次需 npm install）
+cd 项目代码/skill-admin-web && npm install && npm run dev
+
+# Swagger UI
+# http://localhost:8080/swagger-ui.html
 ```
 
 ## 数据库
@@ -84,12 +96,16 @@ cd 项目代码/skill-time-bank-web && npm run dev
 
 ## 前端架构
 
+项目有两个独立前端应用：
+
+### 用户端 `skill-time-bank-web`（端口 5173）
+
 ```
 skill-time-bank-web/src/
 ├── api/                # Axios 封装 + 按模块的 API 调用（index.js / user.js / skill.js）
 ├── stores/user.js      # Pinia store：token, userId, username, role, balance
 ├── composables/        # 可复用组合式函数（useScrollReveal.js 滚动动画）
-├── router/index.js     # 17 条路由，beforeEach 做 auth + admin 守卫
+├── router/index.js     # 路由，beforeEach 做 auth 守卫
 ├── views/
 │   ├── Home.vue        # 技能广场（首页）
 │   ├── Login.vue       # 登录/注册
@@ -97,18 +113,36 @@ skill-time-bank-web/src/
 │   ├── Bounty.vue      # 需求悬赏列表
 │   ├── bounty/         # Create.vue（发布悬赏）, Detail.vue（悬赏详情）
 │   ├── order/          # OrderList.vue（买方/卖方订单列表）, Detail.vue（订单详情+聊天+评价）
-│   ├── user/           # Wallet, Profile, MySkills, Appeal（申诉提交）
-│   └── admin/          # Users, Appeals, Announcements
+│   └── user/           # Wallet, Profile, MySkills, Appeal（申诉提交）
+├── App.vue
+├── main.js
+└── style.css
+```
+
+### 管理后台 `skill-admin-web`（端口 5174）
+
+独立的管理后台 SPA，从用户端分离出来：
+
+```
+skill-admin-web/src/
+├── api/index.js        # Axios 封装
+├── stores/user.js      # Pinia store（管理员登录态）
+├── router/index.js     # 路由，beforeEach 做 admin 守卫
+├── views/
+│   ├── Login.vue       # 管理员登录
+│   ├── Dashboard.vue   # 管理仪表盘
+│   └── admin/          # Users.vue（用户管理）, Skills.vue（技能审核）, Appeals.vue（申诉处理）, Announcements.vue（公告管理）
 ├── App.vue
 ├── main.js
 └── style.css
 ```
 
 关键设计：
-- **Vite 代理**: `/api` → `localhost:8080`，开发环境不需要 CORS
+- **Vite 代理**: 两个前端各自 `/api` → `localhost:8080`，开发环境不需要 CORS
 - **Axios 拦截器**: 请求自动带 `Bearer token`，响应自动检查 `code !== 200` 并弹错误提示
-- **路由守卫**: `meta.requiresAuth` 检查登录，`meta.requiresAdmin` 检查 ADMIN 角色
+- **路由守卫**: 用户端检查登录态，管理后台额外检查 ADMIN 角色
 - **登录态**: token + userId + username + role 存 localStorage，Pinia 读取
+- **管理后台独立部署**: 普通用户无法访问管理功能，前后端物理隔离
 
 ## 关键架构决策
 
@@ -168,9 +202,20 @@ GET  /api/announcement/{id} 公告详情
 
 **管理员接口**（需 ADMIN 角色）:
 ```
-GET  /api/appeal/list
-PUT  /api/appeal/{id}/handle
-POST/DELETE /api/announcement
+GET  /api/admin/users                 用户列表
+PUT  /api/admin/users/{id}/status     启用/禁用用户 {status: 0|1}
+GET  /api/admin/skill/list            技能审核列表
+PUT  /api/admin/skill/{id}/status     技能审核（通过/拒绝）{status: 1|3}
+GET  /api/appeal/list                 申诉列表
+PUT  /api/appeal/{id}/handle          处理申诉
+POST /api/announcement                发布公告
+PUT  /api/announcement                编辑公告
+DELETE /api/announcement/{id}         删除公告
+```
+
+**文件上传**（需登录）:
+```
+POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图片）
 ```
 
 ## 已知问题与注意事项
@@ -203,8 +248,9 @@ POST/DELETE /api/announcement
 ├── 笔记/              # 设计阶段笔记（产品构思、架构设计、多Agent策略）
 ├── 项目代码/
 │   ├── database/init.sql          # 14张表 DDL + 初始数据
-│   ├── skill-time-bank/           # 后端 Maven 多模块工程
-│   └── skill-time-bank-web/       # 前端 Vue 3 工程
+│   ├── skill-time-bank/           # 后端 Maven 多模块工程（7 子模块）
+│   ├── skill-time-bank-web/       # 用户端 Vue 3 工程
+│   └── skill-admin-web/           # 管理后台 Vue 3 工程
 ├── 提交示例/           # 往届其他项目提交（医院预约挂号系统），仅格式参考
 ├── PROGRESS.md        # 开发进度追踪（页面状态、API清单、下一步计划）
 ├── .claude/           # Claude Code 配置（settings.json: bypassPermissions）
@@ -279,6 +325,8 @@ POST/DELETE /api/announcement
 **原因**：Java 编译器默认不保留方法参数名，Spring 需要靠注解的 `name`/`value` 属性获知参数名。
 
 **解决**：所有 `@RequestParam` 必须显式写 `name` 属性：`@RequestParam(name = "page", defaultValue = "1") int page`。
+
+**备注**：父 POM 的 `maven-compiler-plugin` 已配置 `<arg>-parameters</arg>`（Java 17 保留参数名），但显式写 `name` 仍是最佳实践，不依赖编译器行为。
 
 ### 6. Vite 模板残留样式冲突
 

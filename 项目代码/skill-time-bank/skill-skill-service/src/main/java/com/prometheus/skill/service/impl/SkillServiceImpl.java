@@ -31,7 +31,7 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public Skill getSkillDetail(Long id) {
-        Skill skill = skillMapper.selectById(id);
+        Skill skill = skillMapper.selectByIdWithUser(id);
         if (skill == null) {
             throw new BusinessException("技能不存在");
         }
