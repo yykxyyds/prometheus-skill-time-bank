@@ -147,7 +147,7 @@ function addImg(slide, filename, x, y, w, h) {
   slide.addText("我们的方案", { x: 5.4, y: 1.85, w: 4.0, h: 0.45, fontSize: 20, fontFace: "Microsoft YaHei", color: C.teal, bold: true, align: "left" });
   addCard(slide, 5.4, 2.3, 3.8, 2.15);
   const sols = [
-    ["时间币体系", "以时间币量化技能价值，拒绝金钱交易"],
+    ["时间币体系", "以时间币为纽带，让技能价值流动"],
     ["共享平台", "一站式技能发布与交易，降低中间成本"],
     ["信誉机制", "双盲评价+四维雷达图，建立可信社区"],
   ];

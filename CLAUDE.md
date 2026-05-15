@@ -10,18 +10,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 以"时间币"为核心的技能互助平台：用户通过提供技能赚取时间币，再用时间币消费他人技能。新人注册赠送100时间币（注意：产品设计文档写20，但代码实现是100）。
 
-- GitHub: https://github.com/yykxyyds/prometheus-skill-time-bank
+- GitHub: <https://github.com/yykxyyds/prometheus-skill-time-bank>
 - 进度跟踪: `document/PROGRESS.md`（开发进度、API清单、下一步计划）
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|------|
-| 后端 | Spring Boot 3.2 + MyBatis-Plus 3.5.5 |
+| 层   | 技术                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------- |
+| 后端  | Spring Boot 3.2 + MyBatis-Plus 3.5.5                                                                                   |
 | 数据库 | MySQL 8.0.45，库名 `prometheus_skill_bank`，账户 `root/root`，端口 3306，安装于 `D:\MySQL\mysql-8.0.45-winx64`，数据目录 `D:\MySQL\data` |
-| 构建 | Maven 多模块聚合工程（非微服务），Java 17 |
-| 前端 | Vue 3 + Vite 8 + Element Plus + Pinia + Axios |
-| 辅助 | JWT (jjwt 0.12.3)、Hutool 5.8、Lombok、SpringDoc OpenAPI 2.3 |
+| 构建  | Maven 多模块聚合工程（非微服务），Java 17                                                                                            |
+| 前端  | Vue 3 + Vite 8 + Element Plus + Pinia + Axios                                                                          |
+| 辅助  | JWT (jjwt 0.12.3)、Hutool 5.8、Lombok、SpringDoc OpenAPI 2.3                                                              |
 
 > ⚠️ **不使用 Spring Cloud / Nacos / 微服务**。项目是 **Spring Boot 多模块聚合工程**，模块间通过 Maven 依赖直接调用 service 接口，不经过 RPC/服务发现。
 
@@ -29,21 +29,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 父项目 `skill-time-bank`，`groupId=com.prometheus`，`version=1.0.2`，7 个子模块：
 
-| 子模块 | 包路径 | 职责 | 关键类 |
-|--------|--------|------|--------|
-| `skill-common` | `com.prometheus.common` | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解、Jackson 日期格式化 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity`, `JacksonConfig` |
-| `skill-user-service` | `com.prometheus.user` | 注册/登录/个人信息/关注/文件上传 | `UserController`, `UploadController`, `User` entity |
-| `skill-skill-service` | `com.prometheus.skill` | 技能广场/发布/分类搜索/需求悬赏 | `SkillController`, `BountyController`, `CategoryController` |
-| `skill-order-service` | `com.prometheus.order` | 订单状态机/订单聊天(HTTP)/私信/时间币冻结 | `OrderController`, `ChatController`, `PrivateMessageController` |
-| `skill-wallet-service` | `com.prometheus.wallet` | 钱包余额/时间流水/双盲评价/申诉/公告 | `WalletController`, `ReviewController`, `AppealController`, `AnnouncementController` |
-| `skill-admin-service` | `com.prometheus.admin` | **管理员后台**：用户管理、技能审核、申诉处理、公告管理 | `AdminUserController`, `AdminSkillController`, `AdminAppealController`, `AdminAnnouncementController` |
-| `skill-gateway` | `com.prometheus.gateway` | **统一入口（不是网关）**：Spring Boot 主类 + CORS 配置，聚合启动 | `GatewayApplication`, `CorsConfig` |
+| 子模块                    | 包路径                      | 职责                                                        | 关键类                                                                                                   |
+| ---------------------- | ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `skill-common`         | `com.prometheus.common`  | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解、Jackson 日期格式化 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity`, `JacksonConfig`                          |
+| `skill-user-service`   | `com.prometheus.user`    | 注册/登录/个人信息/关注/文件上传                                        | `UserController`, `UploadController`, `User` entity                                                   |
+| `skill-skill-service`  | `com.prometheus.skill`   | 技能广场/发布/分类搜索/需求悬赏                                         | `SkillController`, `BountyController`, `CategoryController`                                           |
+| `skill-order-service`  | `com.prometheus.order`   | 订单状态机/订单聊天(HTTP)/私信/时间币冻结                                 | `OrderController`, `ChatController`, `PrivateMessageController`                                       |
+| `skill-wallet-service` | `com.prometheus.wallet`  | 钱包余额/时间流水/双盲评价/申诉/公告                                      | `WalletController`, `ReviewController`, `AppealController`, `AnnouncementController`                  |
+| `skill-admin-service`  | `com.prometheus.admin`   | **管理员后台**：用户管理、技能审核、申诉处理、公告管理                             | `AdminUserController`, `AdminSkillController`, `AdminAppealController`, `AdminAnnouncementController` |
+| `skill-gateway`        | `com.prometheus.gateway` | **统一入口（不是网关）**：Spring Boot 主类 + CORS 配置，聚合启动              | `GatewayApplication`, `CorsConfig`                                                                    |
 
 每个业务模块内部采用 `controller → service → mapper` 分层。module 间通过直接依赖引用（非 RPC）。
 
 ### Gateway 说明
 
 `skill-gateway` 不是 Spring Cloud Gateway，只是一个聚合启动模块：
+
 - `@ComponentScan("com.prometheus")` — 扫描所有 7 个模块的 bean
 - `@MapperScan(...)` — 扫描所有模块的 MyBatis mapper
 - `CorsConfig` — 处理跨域
@@ -83,7 +84,7 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 
 - MySQL 8.0.45，服务名 `MySQL80`，安装于 `D:\MySQL\mysql-8.0.45-winx64`，数据目录 `D:\MySQL\data`
 - C 盘已无 MySQL（Installer 已清理），全部在 D 盘
-- 库名: `prometheus_skill_bank`，共 14 张表
+- 库名: `prometheus_skill_bank`，共 15 张表
 - 建表脚本: `项目代码/database/init.sql`
 - 初始数据：管理员 admin/admin123、3个测试用户、8 个技能分类
 - 测试数据脚本：`项目代码/database/seed_demo.sql`（演示用）、`seed_test_data.sql`（较完整测试数据）。**init.sql 仅有基础数据**，业务表（技能/订单/悬赏/评价等）初始为空，需执行 seed 脚本才能在页面看到交互效果
@@ -98,12 +99,12 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 
 课程硬性要求容器化部署。`项目代码/docker-compose.yml` 编排 4 个服务：
 
-| 服务 | 容器名 | 端口 | 说明 |
-|------|--------|------|------|
-| mysql | prometheus-mysql | 3306 | MySQL 8.0，自动执行 init.sql |
-| backend | prometheus-backend | 8080 | JRE 17 Alpine，JAR 包 |
-| frontend-user | prometheus-frontend-user | 5173→80 | Nginx 托管用户端 |
-| frontend-admin | prometheus-frontend-admin | 5174→80 | Nginx 托管管理后台 |
+| 服务             | 容器名                       | 端口      | 说明                      |
+| -------------- | ------------------------- | ------- | ----------------------- |
+| mysql          | prometheus-mysql          | 3306    | MySQL 8.0，自动执行 init.sql |
+| backend        | prometheus-backend        | 8080    | JRE 17 Alpine，JAR 包     |
+| frontend-user  | prometheus-frontend-user  | 5173→80 | Nginx 托管用户端             |
+| frontend-admin | prometheus-frontend-admin | 5174→80 | Nginx 托管管理后台            |
 
 ```bash
 # 启动全部服务（-d 后台）
@@ -164,6 +165,7 @@ skill-admin-web/src/
 ```
 
 关键设计：
+
 - **Vite 代理**: 两个前端各自 `/api` → `localhost:8080`，开发环境不需要 CORS
 - **Axios 拦截器**: 请求自动带 `Bearer token`，响应自动检查 `code !== 200` 并弹错误提示
 - **路由守卫**: 用户端检查登录态，管理后台额外检查 ADMIN 角色
@@ -173,6 +175,7 @@ skill-admin-web/src/
 ## 关键架构决策
 
 ### JWT 认证机制
+
 - 不是 Spring Security 过滤器链，而是自定义 `@RequireAuth` 注解
 - `skill-gateway/config/WebMvcConfig` 统一注册 `UserAuthInterceptor`，拦截所有 `/api/**` 请求
 - 公开接口用 `@RequireAuth(required = false)` 标记
@@ -180,19 +183,23 @@ skill-admin-web/src/
 - JWT 工具类在 `skill-common` 的 `JwtUtil`
 
 ### 统一响应格式
+
 - 所有 API 返回 `Result` 对象：`{ code: 200, msg: "success", data: ... }`
 - 异常通过 `GlobalExceptionHandler` 统一捕获
 - 业务异常用 `BusinessException` 抛出
 
 ### 实体基类
+
 - `BaseEntity` 定义 `id`（雪花ID）、`createTime`、`updateTime`
 - **不是所有表都继承它**——如果表缺少 `update_time` 列，就不要继承
 
 ### 订单状态机
+
 - 状态流转: 待确认 → 进行中 → 待确认完成 → 已完成 / 已取消
 - 下单时冻结买家时间币，双方确认后解冻并转账
 
 ### 双盲评价
+
 - 交易完成后双方互评，写完才能看对方评价
 - 7 天自动解盲，双方互评后立即可见
 - 信誉雷达图：按时/沟通/专业/态度 四个维度
@@ -202,6 +209,7 @@ skill-admin-web/src/
 所有接口前缀 `/api`。详细清单见 `document/PROGRESS.md` 第六节。
 
 **公开接口**（无需登录）:
+
 ```
 POST /api/user/register    注册（赠送 100 时间币）
 POST /api/user/login       登录（返回 JWT token）
@@ -217,6 +225,7 @@ GET  /api/announcement/{id} 公告详情
 ```
 
 **需登录**（Header: `Authorization: Bearer <token>`）:
+
 - 用户: `GET/PUT /api/user/profile`
 - 技能: `POST/PUT /api/skill`, `PUT /api/skill/{id}/offline`, `GET /api/skill/my`
 - 悬赏: `POST /api/bounty`, `POST /api/bounty/{id}/apply`, `PUT /api/bounty/{id}/accept|reject|complete`
@@ -228,6 +237,7 @@ GET  /api/announcement/{id} 公告详情
 - 申诉: `POST /api/appeal`
 
 **管理员接口**（需 ADMIN 角色）:
+
 ```
 GET  /api/admin/users                 用户列表
 PUT  /api/admin/users/{id}/status     启用/禁用用户 {status: 0|1}
@@ -241,6 +251,7 @@ DELETE /api/announcement/{id}         删除公告
 ```
 
 **文件上传**（需登录）:
+
 ```
 POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图片）
 ```
@@ -248,6 +259,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 ## 已知问题与注意事项
 
 见 CLAUDE.md 排坑记录（以下为摘要，完整版保留在下方排坑记录节）：
+
 1. MySQL JDBC 字符编码必须用 `UTF-8`（不是 `utf8mb4`）
 2. `spring-boot-maven-plugin` 只在 gateway 子模块激活，父 POM 只放入 `pluginManagement`
 3. 各模块 `WebMvcConfig` 必须用不同 Bean 名（`@Configuration("xxxWebMvcConfig")`）
@@ -257,43 +269,98 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 
 ## 课程硬性要求
 
-| 要求 | 说明 |
-|------|------|
-| 团队规模 | 3-6人/组，每组设组长1名 |
-| 架构 | 分层架构（父子项目/聚合项目），前后端分离 |
-| AI 融入 | 必须融入 AI 技术或使用 AI 工具辅助开发 |
-| 数据库 | 至少10张表（已实现14张），遵循范式设计，绘制ER图 |
-| 代码规范 | 符合《阿里巴巴 Java 开发手册》[强制]部分 |
-| 部署 | Docker / Kubernetes 容器化 |
-| 版本管理 | Git（GitHub） |
-| 交付物 | 8项：任务书/SRS/计划与进度/详细设计/答辩PPT/演示视频/部署说明/代码+SQL+README |
+| 要求    | 说明                                                  |
+| ----- | --------------------------------------------------- |
+| 团队规模  | 3-6人/组，每组设组长1名                                      |
+| 架构    | 分层架构（父子项目/聚合项目），前后端分离                               |
+| AI 融入 | 必须融入 AI 技术或使用 AI 工具辅助开发                             |
+| 数据库   | 至少10张表（已实现15张），遵循范式设计，绘制ER图                         |
+| 代码规范  | 符合《阿里巴巴 Java 开发手册》\[强制]部分                           |
+| 部署    | Docker / Kubernetes 容器化                             |
+| 版本管理  | Git（GitHub）                                         |
+| 交付物   | 8项：任务书/SRS/计划与进度/详细设计/答辩PPT/演示视频/部署说明/代码+SQL+README |
 
 ## 目录结构
 
 ```
-├── document/          # 课程要求 PDF/DOC + 设计笔记 + 进度追踪
-├── 项目代码/
-│   ├── database/init.sql          # 14张表 DDL + 初始数据
-│   ├── skill-time-bank/           # 后端 Maven 多模块工程（7 子模块）
-│   ├── skill-time-bank-web/       # 用户端 Vue 3 工程
-│   └── skill-admin-web/           # 管理后台 Vue 3 工程
-├── 提交示例/           # 往届其他项目提交（医院预约挂号系统），仅格式参考
-├── .claude/           # Claude Code 配置（settings.json: bypassPermissions）
+├── document/                      # 所有文档和交付物
+│   ├── submission/                # ★ 最终提交的 5 份交付物（含临时文件）
+│   │   ├── 最终项目-1-项目任务书-第10组.doc          # 任务书（旧格式 .doc）
+│   │   ├── 最终项目-2-需求规格说明-第10组.docx        # SRS（含目录+图表，~937KB）
+│   │   ├── 最终项目-3-项目计划与进度比较-第10组.xlsx   # Excel 计划表
+│   │   ├── 最终项目-4-项目文档-详细设计-第10组.docx    # 详细设计（含架构图/ER图/类图/流程图）
+│   │   ├── 最终项目-5-答辩PPT-第10组.pptx            # 答辩演示文稿
+│   │   ├── _temp_output.docx                        # docx 生成中间临时文件，可忽略
+│   │   └── ~$项目-*-第10组.docx                      # Word 锁定文件（打开文档时自动生成）
+│   │
+│   ├── demo/                        # 往届第1组完整提交（★ 格式/内容参考模板）
+│   │   ├── 最终项目-1-项目任务书-小组1.doc
+│   │   ├── 最终项目-2-需求规格说明-小组1.docx
+│   │   ├── 最终项目-3-项目计划与进度比较-小组1.xlsx
+│   │   ├── 最终项目-4-项目文档-详细设计-小组1.docx
+│   │   ├── 最终项目-5-答辩PPT-李卓-小组1.pptx
+│   │   └── 项目代码+建表SQL+自动化脚本+README文档/     # 仅占位说明文件
+│   │
+│   ├── 总体要求.pdf                  # 课程 8 项交付物要求原文
+│   ├── PPT模板参考.pptx              # 学院 PPT 模板（自带校徽/配色）
+│   ├── PROGRESS.md                  # 开发进度、API 清单、已知问题、下一步计划
+│   ├── 产品构思-头脑风暴.md           # 产品定位（时间币逻辑、用户场景、视觉方向）
+│   ├── Maven多模块与分层架构.md       # 多模块 Maven 工程 + 分层架构讲义
+│   ├── Claude Code高效使用建议.md     # 本项目的 Claude Code 协作最佳实践
+│   ├── 多Agent开发策略.md            # Claude Code Agent 并行开发策略
+│   ├── 小组成员消息.txt              # 4 位团队成员姓名及分工定位
+│   ├── todo补充.txt                 # 功能迭代清单（已全部✔）+ PPT/SRS/文档修改意见
+│   │
+│   ├── screenshots/                 # 前端页面截图 + 文档插图
+│   │   ├── *.png                    # 11 张页面截图：首页/技能详情/钱包/个人中心/消息/
+│   │   │                            #   订单(买方)/管理后台(用户/技能/申诉/公告)
+│   │   ├── diagrams/                # 文档用图：architecture / er_diagram /
+│   │   │                            #   class_diagram / flow_chart（由 gen_diagrams_v3.py 生成）
+│   │   └── ref/                     # PPT 用参考截图 7 张（img_0~img_6）
+│   │
+│   ├── gen_diagrams_v3.py           # matplotlib 生成 4 张文档插图（架构/ER/类/流程）
+│   ├── generate_ppt.js              # pptxgenjs 生成 PPT 脚本（v1）
+│   ├── generate_ppt_v2.js           # pptxgenjs 生成 PPT 脚本（v2 改进版）
+│   └── screenshot.py                # Playwright 自动截取前端页面（5173/5174 端口）
+│
+├── 项目代码/                         # 见下方"项目代码"节
+│   ├── database/init.sql            # 15张表 DDL + 初始数据
+│   ├── skill-time-bank/             # 后端 Maven 多模块工程（7 子模块）
+│   ├── skill-time-bank-web/         # 用户端 Vue 3 工程
+│   └── skill-admin-web/             # 管理后台 Vue 3 工程
+├── .claude/                         # Claude Code 配置（settings.json: bypassPermissions）
 └── CLAUDE.md
 ```
 
+### document/ 文件关系速查
+
+| 需求 | 文件 |
+|------|------|
+| 搞清楚课程要求 | `总体要求.pdf` |
+| 格式参考（文档怎么写） | `demo/最终项目-*-小组1.*` — 第1组的完整提交 |
+| PPT 模板 | `PPT模板参考.pptx` — 学院统一模板 |
+| 项目进度 / API 清单 | `PROGRESS.md` |
+| 产品定位、设计思路 | `产品构思-头脑风暴.md` |
+| 架构说明 | `Maven多模块与分层架构.md` |
+| 团队分工 | `小组成员消息.txt` |
+| 待办 / 修改意见 | `todo补充.txt` |
+| 生成文档插图（架构/ER/类/流程图） | 运行 `python document/gen_diagrams_v3.py` → 输出到 `screenshots/diagrams/` |
+| 截取前端页面 | 启动前后端 → 运行 `python document/screenshot.py` → 输出到 `screenshots/` |
+| 生成 PPT | 运行 `node document/generate_ppt_v2.js` |
+| 当前提交的 5 份交付物 | `submission/最终项目-[1-5]-第10组.*` |
+
 ## 交付物清单
 
-| # | 交付物 | 格式 | 状态 |
-|:--:|--------|------|:----:|
-| 1 | 项目任务书 | `.doc` | ❌ |
-| 2 | 需求规格说明 (SRS) | `.docx` | ❌ |
-| 3 | 项目计划与进度比较 | `.xlsx` | ❌ |
-| 4 | 详细设计文档（含ER图） | `.docx` | ❌ |
-| 5 | 答辩PPT | `.pptx` | ❌ |
-| 6 | 演示视频 | 视频 | ❌ |
-| 7 | 部署说明文档 | 文档 | ❌ |
-| 8 | 项目代码 + SQL + README | 代码/文档 | ✅ |
+|  #  | 交付物                 | 格式      |  状态 |
+| :-: | ------------------- | ------- | :-: |
+|  1  | 项目任务书               | `.doc`  |  ✅  |
+|  2  | 需求规格说明 (SRS)        | `.docx` |  ✅  |
+|  3  | 项目计划与进度比较           | `.xlsx` |  ✅  |
+|  4  | 详细设计文档（含ER图）        | `.docx` |  ✅  |
+|  5  | 答辩PPT               | `.pptx` |  ✅  |
+|  6  | 演示视频                | 视频      |  ❌  |
+|  7  | 部署说明文档              | 文档      |  ❌  |
+|  8  | 项目代码 + SQL + README | 代码/文档   |  ✅  |
 
 ## 自检验证规范
 
@@ -304,7 +371,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 - SQL: 连接 MySQL 执行 `SHOW TABLES;` / `DESC table_name;`
 - 验证三种输入: 正常 + 异常（空值/越界） + 边界
 
----
+***
 
 ## 排坑记录（开发中遇到的已解决问题）
 
@@ -323,9 +390,10 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 **原因**：父 POM（`skill-time-bank`）的 `<build><plugins>` 中声明了 `spring-boot-maven-plugin`，这会**覆盖** Spring Boot 父 POM（`spring-boot-starter-parent`）中该插件的默认配置，导致 `repackage` goal 失去与 `package` 生命周期的绑定。
 
 **解决**：
+
 - 父 POM 中只将 `spring-boot-maven-plugin` 放入 `<pluginManagement>`（提供配置模板，不激活）
 - 仅在 gateway 子模块的 `<build><plugins>` 中声明并添加 `<executions><execution><goals><goal>repackage</goal>` 激活 repackage
-- **不要用 `mvn spring-boot:run`**，它解析多模块反应器依赖不可靠；始终用 `mvn clean package -pl skill-gateway -am` + `java -jar`。
+- **不要用** **`mvn spring-boot:run`**，它解析多模块反应器依赖不可靠；始终用 `mvn clean package -pl skill-gateway -am` + `java -jar`。
 
 ### 3. WebMvcConfig Bean 名称冲突
 

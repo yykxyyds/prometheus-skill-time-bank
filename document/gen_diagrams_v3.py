@@ -4,7 +4,10 @@ Diagrams V3 — Large fonts, generous spacing, zero overlaps.
 Figure sizes much larger; Word will scale them down to ~5.8in wide.
 """
 import sys, os
-sys.stdout.reconfigure(encoding='utf-8')
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 import matplotlib
@@ -13,7 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 import numpy as np
 
-plt.rcParams['font.family'] = 'SimHei'
+plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DengXian', 'Arial']
+plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['axes.unicode_minus'] = False
 
 OUT = "screenshots/diagrams"
@@ -288,11 +292,11 @@ for src, dst, c1, c2 in rels:
         x1, y1 = classes[src]['pos']
         x2, y2 = classes[dst]['pos']
         ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-            arrowprops=dict(arrowstyle='->', color='#CCCCCC', lw=1.5,
-            connectionstyle='arc3,rad=0.08'))
-        mx, my = (x1+x2)/2 + 0.15, (y1+y2)/2 + 0.15
+            arrowprops=dict(arrowstyle='->', color='#AAAAAA', lw=1.5,
+            connectionstyle='arc3,rad=0.15'))
+        mx, my = (x1+x2)/2 + 0.25, (y1+y2)/2 + 0.25
         ax.text(mx, my, f'{c1}..{c2}', ha='center', va='center',
-                fontsize=10, color='#AAA')
+                fontsize=11, color='#666')
 
 plt.tight_layout(pad=0.5)
 fig.savefig(f'{OUT}/class_diagram.png', dpi=DPI, bbox_inches='tight', facecolor='white')
@@ -410,18 +414,18 @@ for src, dst, card in relationships:
     if src in tables and dst in tables:
         x1, y1 = tables[src]['pos']
         x2, y2 = tables[dst]['pos']
-        ax.plot([x1, x2], [y1, y2], '-', color='#DDDDDD', lw=1.2, alpha=0.6, zorder=0)
+        ax.plot([x1, x2], [y1, y2], '-', color='#999999', lw=1.5, alpha=0.7, zorder=0)
         mx, my = (x1+x2)/2 + 0.15, (y1+y2)/2 + 0.15
-        ax.text(mx, my, card, ha='center', va='center', fontsize=10, color='#BBB',
+        ax.text(mx, my, card, ha='center', va='center', fontsize=11, color='#555',
                 bbox=dict(facecolor='white', edgecolor='none', pad=0.3))
 
-# Legend
-lx, ly = 0.5, 15.0
+# Legend — placed at upper-right to avoid overlap with skill_category table
+lx, ly = 16.0, 15.0
 legend_box = FancyBboxPatch((lx, ly-0.9), 7.5, 1.2,
-    boxstyle="round,pad=0.12", facecolor='white', edgecolor='#CCC', linewidth=1)
+    boxstyle="round,pad=0.12", facecolor='white', edgecolor='#999', linewidth=1.5)
 ax.add_patch(legend_box)
 ax.text(lx+0.3, ly, '图例', fontsize=14, fontweight='bold', color='#333')
-ax.plot([lx+0.3, lx+1.2], [ly-0.35, ly-0.35], '-', color='#DDDDDD', lw=1.2)
+ax.plot([lx+0.3, lx+1.2], [ly-0.35, ly-0.35], '-', color='#999999', lw=1.5)
 ax.text(lx+1.5, ly-0.35, '外键引用关系', fontsize=12, color='#666', va='center')
 ax.text(lx+4.2, ly-0.35, 'PK = 主键   FK = 外键   UK = 唯一约束', fontsize=12, color='#666', va='center')
 ax.text(lx+0.3, ly-0.7, '1 : N = 一对多    1 : 2 = 一对二    1 : 4 = 一对四', fontsize=12, color='#666')

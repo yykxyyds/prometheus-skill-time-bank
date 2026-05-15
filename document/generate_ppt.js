@@ -249,7 +249,7 @@ function addBottomLine(slide, text) {
     fill: { color: C.orangeLight },
     rectRadius: 0.1,
   });
-  slide.addText("目标：构建一个拒绝金钱交易、回归价值交换的技能互助社区", {
+  slide.addText("目标：以时间币为纽带，让每个人的技能都有价值", {
     x: 0.8, y: 4.65, w: 8.4, h: 0.45,
     fontSize: 13, fontFace: "Microsoft YaHei",
     color: C.orange, align: "center", valign: "middle",
