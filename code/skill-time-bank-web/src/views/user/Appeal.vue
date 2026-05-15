@@ -48,7 +48,7 @@ async function submit() {
       <div class="form-row">
         <label>关联订单ID</label>
         <el-input-number v-model="form.orderId" :min="1" placeholder="输入订单ID" style="width:100%" size="large" />
-        <span class="form-hint">可在"我的订单"页面查看订单ID</span>
+        <span class="form-hint">可在"我的需求"页面查看订单ID</span>
       </div>
 
       <div class="form-row">

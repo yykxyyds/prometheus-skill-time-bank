@@ -13,13 +13,12 @@ const userAvatar = ref('')
 const announcements = ref([])
 const showAnnouncePanel = ref(false)
 const loadingAnnounce = ref(false)
-const unreadCount = ref(0)
 let unreadTimer = null
 
 onMounted(() => {
-  loadUnread()
+  userStore.refreshUnread()
   loadAvatar()
-  unreadTimer = setInterval(loadUnread, 30000)
+  unreadTimer = setInterval(() => userStore.refreshUnread(), 30000)
   document.addEventListener('click', onDocClick)
 })
 
@@ -37,14 +36,6 @@ async function loadAvatar() {
   try {
     const res = await api.get('/user/profile')
     userAvatar.value = res.data?.avatar || ''
-  } catch { /* silent */ }
-}
-
-async function loadUnread() {
-  if (!userStore.isLoggedIn) { unreadCount.value = 0; return }
-  try {
-    const res = await api.get('/chat/private/unread')
-    unreadCount.value = res.data || 0
   } catch { /* silent */ }
 }
 
@@ -114,7 +105,7 @@ function handleLogout() {
           <template v-if="userStore.isLoggedIn">
             <router-link to="/messages" class="icon-btn" title="消息">
               <Icon icon="mdi:message-text" class="icon-btn-icon" />
-              <span v-if="unreadCount > 0" class="icon-btn-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              <span v-if="userStore.unreadCount > 0" class="icon-btn-badge">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</span>
             </router-link>
             <div class="avatar-wrap" @click.stop="avatarMenuOpen = !avatarMenuOpen">
               <img v-if="userAvatar" :src="userAvatar" class="avatar-img" />
@@ -130,8 +121,11 @@ function handleLogout() {
                   </div>
                 </div>
                 <div class="ad-divider"></div>
+                <router-link to="/my-bounties" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
+                  <Icon icon="mdi:clipboard-list" />我的需求
+                </router-link>
                 <router-link to="/orders/buyer" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
-                  <Icon icon="mdi:clipboard-list" />我的订单
+                  <Icon icon="mdi:clipboard-text-clock" />我的订单
                 </router-link>
                 <router-link to="/my-skills" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
                   <Icon icon="mdi:briefcase" />我的技能
@@ -177,10 +171,13 @@ function handleLogout() {
               <div class="drawer-divider"></div>
               <router-link to="/messages" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:message-text" />消息
-                <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                <span v-if="userStore.unreadCount > 0" class="nav-badge">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</span>
+              </router-link>
+              <router-link to="/my-bounties" class="drawer-item" active-class="nav-active" @click="closeMenu">
+                <Icon icon="mdi:clipboard-list" />我的需求
               </router-link>
               <router-link to="/orders/buyer" class="drawer-item" active-class="nav-active" @click="closeMenu">
-                <Icon icon="mdi:clipboard-list" />我的订单
+                <Icon icon="mdi:clipboard-text-clock" />我的订单
               </router-link>
               <router-link to="/my-skills" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:briefcase" />我的技能

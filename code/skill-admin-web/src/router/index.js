@@ -36,6 +36,12 @@ const routes = [
     name: 'Skills',
     meta: { requiresAuth: true },
     component: () => import('../views/admin/Skills.vue')
+  },
+  {
+    path: '/bounties',
+    name: 'Bounties',
+    meta: { requiresAuth: true },
+    component: () => import('../views/admin/Bounties.vue')
   }
 ]
 

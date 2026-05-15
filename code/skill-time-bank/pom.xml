@@ -26,7 +26,7 @@
     <properties>
         <java.version>17</java.version>
         <maven.compiler.release>17</maven.compiler.release>
-        <maven.compiler.proc>full</maven.compiler.proc>
+        <!-- maven.compiler.proc=full requires JDK 22+, removed for JDK 17 compat -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.36</lombok.version>
 

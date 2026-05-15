@@ -36,6 +36,14 @@ export function publishBounty(data) {
   return api.post('/bounty', data)
 }
 
+export function updateBounty(id, data) {
+  return api.put(`/bounty/${id}`, data)
+}
+
+export function deleteBounty(id) {
+  return api.delete(`/bounty/${id}`)
+}
+
 export function uploadImage(file) {
   const formData = new FormData()
   formData.append('file', file)

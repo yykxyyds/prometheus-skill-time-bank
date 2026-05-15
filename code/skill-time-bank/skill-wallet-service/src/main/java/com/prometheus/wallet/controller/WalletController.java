@@ -1,6 +1,7 @@
 package com.prometheus.wallet.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.prometheus.common.BusinessException;
 import com.prometheus.common.Result;
 import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.wallet.entity.TimeTransaction;
@@ -27,7 +28,14 @@ public class WalletController {
     @RequireAuth
     public Result<Map<String, Object>> getBalance(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return Result.success(walletService.getBalanceInfo(userId));
+        try {
+            return Result.success(walletService.getBalanceInfo(userId));
+        } catch (BusinessException e) {
+            if ("用户不存在".equals(e.getMessage())) {
+                throw new BusinessException(401, "账号不存在或已被删除，请重新登录");
+            }
+            throw e;
+        }
     }
 
     @GetMapping("/transactions")
@@ -37,6 +45,13 @@ public class WalletController {
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
         Long userId = (Long) request.getAttribute("userId");
-        return Result.success(walletService.getTransactions(userId, page, size));
+        try {
+            return Result.success(walletService.getTransactions(userId, page, size));
+        } catch (BusinessException e) {
+            if ("用户不存在".equals(e.getMessage())) {
+                throw new BusinessException(401, "账号不存在或已被删除，请重新登录");
+            }
+            throw e;
+        }
     }
 }

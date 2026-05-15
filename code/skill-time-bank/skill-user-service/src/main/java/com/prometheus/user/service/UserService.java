@@ -46,4 +46,14 @@ public interface UserService {
      * 好友列表（互相关注）
      */
     List<Map<String, Object>> getFriends(Long userId);
+
+    /**
+     * 获取粉丝列表
+     */
+    List<Map<String, Object>> getFollowers(Long userId);
+
+    /**
+     * 获取关注列表
+     */
+    List<Map<String, Object>> getFollowing(Long userId);
 }

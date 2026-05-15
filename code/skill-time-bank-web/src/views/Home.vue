@@ -1,21 +1,28 @@
 <script setup>
 import { ref, onMounted, onActivated, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
 import { getSkillList, getCategories } from '../api/skill'
 import api from '../api/index'
 import { Icon } from '@iconify/vue'
 
+const router = useRouter()
+const userStore = useUserStore()
+
 const skills = ref([])
 const categories = ref([])
 const loading = ref(false)
-const query = ref({ page: 1, size: 50, categoryId: null, keyword: '', sort: '' })
+const query = ref({ page: 1, size: 20, categoryId: null, keyword: '', sort: '' })
 const total = ref(0)
+const currentPage = ref(1)
 const heroStats = ref({ skillCount: 0, userCount: 0, orderCount: 0 })
 const announcements = ref([])
 const showAnnouncePopup = ref(false)
 
-const CARDS_PER_ROW = 12
+const CARDS_PER_ROW = 5
+const totalPages = computed(() => Math.ceil(total.value / query.value.size) || 1)
 
-// 把技能按行分组，每行 CARDS_PER_ROW 个
+// 把技能按行分组，每行 CARDS_PER_ROW 个 → 20/5 = 4 行
 const skillRows = computed(() => {
   const rows = []
   for (let i = 0; i < skills.value.length; i += CARDS_PER_ROW) {
@@ -27,6 +34,7 @@ const skillRows = computed(() => {
 async function loadData() {
   loading.value = true
   try {
+    query.value.page = currentPage.value
     const [skillRes, catRes] = await Promise.all([
       getSkillList(query.value),
       getCategories()
@@ -42,6 +50,12 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+function goPage(p) {
+  if (p < 1 || p > totalPages.value) return
+  currentPage.value = p
+  loadData()
 }
 
 async function loadAnnouncements() {
@@ -69,6 +83,7 @@ function formatTime(t) {
 }
 
 async function search() {
+  currentPage.value = 1
   await loadData()
 }
 
@@ -79,17 +94,51 @@ onMounted(async () => {
 onActivated(loadData)
 
 const categoryCovers = {
-  '编程开发': { icon: 'mdi:code-braces', color: '#4361ee' },
-  '设计创意': { icon: 'mdi:palette-swatch-outline', color: '#e8784a' },
-  '语言学习': { icon: 'mdi:translate', color: '#4caf50' },
-  '音乐艺术': { icon: 'mdi:music-clef-treble', color: '#e91e63' },
-  '运动健身': { icon: 'mdi:run-fast', color: '#ff9800' },
-  '学术辅导': { icon: 'mdi:school-outline', color: '#2196f3' },
-  '生活技能': { icon: 'mdi:hand-heart-outline', color: '#9c27b0' },
-  '职场咨询': { icon: 'mdi:briefcase-account-outline', color: '#607d8b' },
+  '编程开发': { icon: 'mdi:code-braces', color: '#4361ee', emoji: '💻' },
+  '设计创意': { icon: 'mdi:palette-swatch-outline', color: '#e8784a', emoji: '🎨' },
+  '语言学习': { icon: 'mdi:translate', color: '#4caf50', emoji: '🌍' },
+  '音乐艺术': { icon: 'mdi:music-clef-treble', color: '#e91e63', emoji: '🎵' },
+  '运动健身': { icon: 'mdi:run-fast', color: '#ff9800', emoji: '💪' },
+  '学术辅导': { icon: 'mdi:school-outline', color: '#2196f3', emoji: '🎓' },
+  '生活技能': { icon: 'mdi:hand-heart-outline', color: '#9c27b0', emoji: '🏠' },
+  '职场咨询': { icon: 'mdi:briefcase-account-outline', color: '#607d8b', emoji: '💼' },
 }
 function categoryCover(catName) {
-  return categoryCovers[catName] || { icon: 'mdi:star', color: '#e8784a' }
+  return categoryCovers[catName] || { icon: 'mdi:star', color: '#e8784a', emoji: '⭐' }
+}
+
+// 根据技能标题匹配强相关 emoji
+function getSkillEmoji(title) {
+  if (!title) return null
+  const map = [
+    ['Python', '🐍'], ['React', '⚛️'], ['Vue', '💚'], ['Spring', '🍃'],
+    ['Go', '🔵'], ['SQL', '🗄️'], ['C4D', '🧊'], ['PR', '🎬'], ['Figma', '🖼️'],
+    ['TypeScript', '💙'], ['Node', '🟢'], ['Linux', '🐧'], ['Docker', '🐋'],
+    ['瑜伽', '🧘'], ['健身', '🏋️'], ['HIIT', '🏃'], ['燃脂', '🔥'],
+    ['马拉松', '🏅'], ['运动', '🚴'], ['拉伸', '🧘'], ['增肌', '💪'],
+    ['日语', '🗾'], ['韩语', '🇰🇷'], ['法语', '🥐'], ['德语', '🍺'],
+    ['英语', '📖'], ['雅思', '🎯'], ['商务英语', '💼'], ['写作', '✍️'],
+    ['吉他', '🎸'], ['尤克里里', '🪕'], ['钢琴', '🎹'], ['音乐', '🎵'],
+    ['电影', '🎥'], ['配乐', '🎼'], ['弹唱', '🎤'],
+    ['咖啡', '☕'], ['手冲', '☕'], ['拿铁', '☕'], ['拉花', '☕'],
+    ['烹饪', '🍳'], ['家常菜', '🥘'], ['烘焙', '🧁'], ['营养', '🥗'],
+    ['插画', '🖌️'], ['绘画', '🖼️'], ['设计', '✏️'], ['摄影', '📷'],
+    ['概念设计', '🎮'], ['角色', '🎮'], ['B端', '🖥️'], ['UI', '📱'],
+    ['税务', '💰'], ['PMP', '📋'], ['投资', '📈'], ['理财', '💎'],
+    ['简历', '📄'], ['面试', '🤝'], ['项目管理', '📋'], ['职场', '💼'],
+    ['数学', '📐'], ['考研', '🎓'], ['法考', '⚖️'], ['线性代数', '📐'],
+    ['高等数学', '📐'], ['学术', '📚'], ['考试', '📝'], ['冲刺', '📝'],
+    ['小红书', '📱'], ['运营', '📊'], ['自媒体', '🎯'], ['文案', '📝'],
+    ['动漫', '🎌'], ['零基础', '🌱'], ['入门', '🚪'], ['进阶', '📈'],
+    ['实战', '⚔️'], ['速成', '⚡'], ['教学', '📖'], ['辅导', '📝'],
+    ['计划', '📋'], ['训练', '🎯'], ['课程', '📚'], ['技巧', '💡'],
+    ['指南', '🧭'], ['攻略', '🗺️'], ['秘籍', '📜'], ['认证', '🏆'],
+    ['数据分析', '📊'], ['编程', '💻'], ['开发', '🛠️'],
+  ]
+  for (const [key, emoji] of map) {
+    if (title.includes(key)) return emoji
+  }
+  return null
 }
 </script>
 
@@ -172,8 +221,13 @@ function categoryCover(catName) {
     <!-- 技能滚动行 -->
     <section class="skills-section" v-loading="loading">
       <div class="section-header">
-        <h2>技能广场</h2>
-        <span class="section-sub">发现身边的高手</span>
+        <div>
+          <h2>技能广场</h2>
+          <span class="section-sub">发现身边的高手</span>
+        </div>
+        <button class="publish-btn" v-if="userStore.isLoggedIn" @click="router.push('/my-skills')">
+          <Icon icon="mdi:plus-circle" /> 发布技能
+        </button>
       </div>
 
       <el-empty
@@ -206,10 +260,10 @@ function categoryCover(catName) {
                 class="card-cover"
                 :style="skill.coverImage
                   ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                  : { background: categoryCover(skill.categoryName).color + '10' }"
+                  : { background: `linear-gradient(135deg, ${categoryCover(skill.categoryName).color}18, ${categoryCover(skill.categoryName).color}30)` }"
               >
                 <template v-if="!skill.coverImage">
-                  <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
+                  <span class="cover-emoji">{{ getSkillEmoji(skill.title) || categoryCover(skill.categoryName).emoji }}</span>
                   <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
                 </template>
               </div>
@@ -238,10 +292,10 @@ function categoryCover(catName) {
                 class="card-cover"
                 :style="skill.coverImage
                   ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                  : { background: categoryCover(skill.categoryName).color + '10' }"
+                  : { background: `linear-gradient(135deg, ${categoryCover(skill.categoryName).color}18, ${categoryCover(skill.categoryName).color}30)` }"
               >
                 <template v-if="!skill.coverImage">
-                  <Icon :icon="categoryCover(skill.categoryName).icon" class="cover-cat-icon" :style="{ color: categoryCover(skill.categoryName).color }" />
+                  <span class="cover-emoji">{{ getSkillEmoji(skill.title) || categoryCover(skill.categoryName).emoji }}</span>
                   <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
                 </template>
               </div>
@@ -261,6 +315,17 @@ function categoryCover(catName) {
             </article>
           </div>
         </div>
+      </div>
+
+      <!-- 分页 -->
+      <div class="pagination-bar" v-if="totalPages > 1">
+        <button class="page-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">上一页</button>
+        <template v-for="p in totalPages" :key="p">
+          <button v-if="p <= 5 || p > totalPages - 2 || Math.abs(p - currentPage) <= 1"
+            :class="['page-btn', { active: p === currentPage }]" @click="goPage(p)">{{ p }}</button>
+          <span v-else-if="p === 6 || p === totalPages - 2" class="page-dots">...</span>
+        </template>
+        <button class="page-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">下一页</button>
       </div>
     </section>
 
@@ -484,19 +549,39 @@ function categoryCover(catName) {
 /* ========== 技能区域 ========== */
 .section-header {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 24px;
 }
 .section-header h2 {
   font-size: 22px;
   font-weight: 700;
   color: #2c3e50;
-  margin: 0;
+  margin: 0 0 4px;
 }
 .section-sub {
   font-size: 14px;
   color: #bbb;
+}
+.publish-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  background: linear-gradient(135deg, #e8784a, #f0a060);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.publish-btn:hover {
+  box-shadow: 0 4px 14px rgba(232,120,74,0.3);
+  transform: translateY(-1px);
 }
 
 /* ========== 滚动行容器 ========== */
@@ -572,32 +657,71 @@ function categoryCover(catName) {
 
 /* 卡片封面 */
 .card-cover {
-  height: 120px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
-.cover-cat-icon {
-  font-size: 42px;
-  opacity: 0.35;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+.cover-emoji {
+  font-size: 56px;
+  transition: transform 0.3s ease;
+  filter: grayscale(0.15);
 }
-.skill-card:hover .cover-cat-icon {
-  transform: scale(1.1);
-  opacity: 0.5;
+.skill-card:hover .cover-emoji {
+  transform: scale(1.15);
 }
 .cover-category {
   position: absolute;
-  top: 12px;
-  right: 14px;
-  background: rgba(255,255,255,0.25);
+  top: 10px;
+  right: 12px;
+  background: rgba(0,0,0,0.12);
   backdrop-filter: blur(4px);
   color: #fff;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+}
+
+/* 分页 */
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+}
+.page-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #e8e0d8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: #e8784a;
+  color: #e8784a;
+}
+.page-btn.active {
+  background: #e8784a;
+  color: #fff;
+  border-color: #e8784a;
+  font-weight: 600;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-dots {
+  padding: 0 4px;
+  color: #bbb;
 }
 
 /* 卡片内容 */

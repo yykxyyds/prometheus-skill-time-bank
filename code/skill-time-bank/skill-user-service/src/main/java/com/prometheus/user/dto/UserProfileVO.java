@@ -21,4 +21,5 @@ public class UserProfileVO {
     private Long followerCount;
     private Long followingCount;
     private Long skillCount;
+    private Long orderCount;
 }

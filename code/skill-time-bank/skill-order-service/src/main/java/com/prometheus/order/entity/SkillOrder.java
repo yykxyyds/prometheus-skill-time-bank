@@ -26,4 +26,18 @@ public class SkillOrder extends BaseEntity {
     private Integer buyerConfirm;
     private Integer sellerConfirm;
     private LocalDateTime completedTime;
+
+    /** 以下为联表查询字段，非数据库列 */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String buyerName;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String buyerAvatar;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String sellerName;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String sellerAvatar;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String skillName;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String bountyTitle;
 }

@@ -418,7 +418,7 @@ function addImg(slide, filename, x, y, w, h) {
   addTitle(slide, "项目成果与AI辅助开发");
   addCard(slide, 0.8, 1.3, 3.9, 3.35);
   slide.addText("项目成果", { x: 1.1, y: 1.45, w: 3.4, h: 0.4, fontSize: 18, fontFace: "Microsoft YaHei", color: C.orange, bold: true, align: "left" });
-  ["7个Maven模块全部编译通过", "14张数据库表完整设计", "13+前端页面完整实现", "30+ API接口全覆盖", "8项课程交付物全部完成"].forEach((a, i) => {
+  ["7个Maven模块全部编译通过", "15张数据库表完整设计", "13+前端页面完整实现", "30+ API接口全覆盖", "6项课程交付物 + 2项可选加分项全部完成"].forEach((a, i) => {
     slide.addText("✓", { x: 1.1, y: 2.05 + i * 0.5, w: 0.3, h: 0.35, fontSize: 14, color: C.orange, align: "center" });
     slide.addText(a, { x: 1.5, y: 2.05 + i * 0.5, w: 3.0, h: 0.35, fontSize: 13, fontFace: "Microsoft YaHei", color: C.dark, align: "left" });
   });
@@ -437,7 +437,7 @@ function addImg(slide, filename, x, y, w, h) {
     slide.addText(a.desc, { x: 5.95, y: sy + 0.25, w: 3.0, h: 0.25, fontSize: 10.5, fontFace: "Microsoft YaHei", color: C.gray, align: "left" });
   });
   slide.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 0.8, y: 4.9, w: 8.4, h: 0.45, fill: { color: C.tealLight }, rectRadius: 0.1 });
-  slide.addText("课程要求全部满足：分层架构  |  前后端分离  |  14张表  |  JWT认证  |  Git版本管理  |  AI融入", { x: 0.8, y: 4.9, w: 8.4, h: 0.45, fontSize: 11, fontFace: "Microsoft YaHei", color: C.teal, align: "center", valign: "middle", bold: true });
+  slide.addText("课程要求全部满足：分层架构  |  前后端分离  |  15张表  |  JWT认证  |  Git版本管理  |  AI融入  |  设计模式  |  单元测试(59)", { x: 0.8, y: 4.9, w: 8.4, h: 0.45, fontSize: 11, fontFace: "Microsoft YaHei", color: C.teal, align: "center", valign: "middle", bold: true });
 }
 
 // SLIDE 15: Thank you

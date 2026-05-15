@@ -16,6 +16,7 @@ const navItems = [
   { path: '/users', label: '用户管理', icon: '👥' },
   { path: '/appeals', label: '申诉管理', icon: '⚖️' },
   { path: '/skills', label: '技能审核', icon: '🔍' },
+  { path: '/bounties', label: '悬赏审核', icon: '💰' },
   { path: '/announcements', label: '公告管理', icon: '📢' }
 ]
 </script>

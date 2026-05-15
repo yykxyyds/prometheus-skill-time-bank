@@ -85,12 +85,12 @@ async function handleAction(order, action) {
   <div class="order-page">
     <div class="page-header">
       <div>
-        <h2>{{ isBuyer ? '我购买的' : '我出售的' }}</h2>
-        <p>{{ isBuyer ? '管理你作为买方的订单' : '管理你作为卖方的订单' }}</p>
+        <h2>{{ isBuyer ? '我购买的服务' : '我提供的服务' }}</h2>
+        <p>{{ isBuyer ? '我向他人购买技能的订单' : '他人向我购买技能的订单' }}</p>
       </div>
       <div class="mode-switch">
         <button :class="{ active: isBuyer }" @click="router.push('/orders/buyer')">我买的</button>
-        <button :class="{ active: !isBuyer }" @click="router.push('/orders/seller')">我卖的</button>
+        <button :class="{ active: !isBuyer }" @click="router.push('/orders/seller')">我接的单</button>
       </div>
     </div>
 
@@ -125,9 +125,14 @@ async function handleAction(order, action) {
                 <Icon icon="mdi:star" class="amount-icon" />
                 {{ order.amount }} 时间币
               </span>
-              <span class="order-skill" v-if="order.skillId">技能 #{{ order.skillId }}</span>
-              <span class="order-user">
-                {{ isBuyer ? '卖家' : '买家' }} #{{ isBuyer ? order.sellerId : order.buyerId }}
+              <span class="order-skill" v-if="order.skillName">
+                <Icon icon="mdi:briefcase" class="order-type-icon" /> {{ order.skillName }}
+              </span>
+              <span class="order-skill bounty" v-else-if="order.bountyTitle">
+                <Icon icon="mdi:clipboard-text-search" class="order-type-icon" /> {{ order.bountyTitle }}
+              </span>
+              <span class="order-user" v-if="isBuyer ? order.sellerName : order.buyerName">
+                {{ isBuyer ? '卖家 ' : '买家 ' }}{{ isBuyer ? order.sellerName : order.buyerName }}
               </span>
             </div>
             <div class="order-time">{{ order.createTime }}</div>
@@ -299,6 +304,16 @@ async function handleAction(order, action) {
 .order-skill, .order-user {
   font-size: 13px;
   color: #999;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.order-skill.bounty {
+  color: #e8784a;
+}
+.order-type-icon {
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .order-time {
   font-size: 13px;

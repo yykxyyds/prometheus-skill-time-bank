@@ -3,8 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import api from '../../api/index'
+import { deleteBounty } from '../../api/skill'
 import { Icon } from '@iconify/vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserProfile, followUser, unfollowUser, getFollowStatus } from '../../api/user'
 
 const route = useRoute()
@@ -58,10 +59,11 @@ async function toggleFollow() {
 }
 
 const statusMap = {
+  0: { label: '待审核', color: '#e8784a', bg: '#fef0e6' },
   1: { label: '已发布', color: '#e6a23c', bg: '#fdf6ec' },
   2: { label: '已接单', color: '#409eff', bg: '#ecf5ff' },
   3: { label: '已完成', color: '#4caf50', bg: '#e8f5e9' },
-  4: { label: '已过期', color: '#999', bg: '#f5f5f5' }
+  4: { label: '已拒绝', color: '#999', bg: '#f5f5f5' }
 }
 const statusInfo = computed(() => statusMap[bounty.value.status] || statusMap[4])
 const isOwner = computed(() => userStore.isLoggedIn && userStore.userId === bounty.value.userId)
@@ -131,6 +133,26 @@ async function handleReject(appId) {
   } catch (e) { /* handled */ }
 }
 
+function handleEdit() {
+  router.push(`/bounty/create?edit=${bounty.value.id}`)
+}
+
+async function handleDelete() {
+  try {
+    await ElMessageBox.confirm('确定要删除这个悬赏吗？删除后不可恢复。', '确认删除', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
+    })
+    await deleteBounty(bounty.value.id)
+    ElMessage.success('悬赏已删除')
+    router.push('/bounty')
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') { /* handled by interceptor */ }
+  }
+}
+
 async function handleComplete() {
   try {
     await api.put(`/bounty/${bounty.value.id}/complete`)
@@ -183,11 +205,17 @@ async function handleComplete() {
           </div>
 
           <!-- 发布者管理 -->
-          <div class="content-card" v-if="isOwner && bounty.status === 1">
+          <div class="content-card" v-if="isOwner">
             <h3>管理悬赏</h3>
             <div class="owner-actions">
-              <button class="btn-primary" @click="loadApplications">
+              <button class="btn-primary" @click="loadApplications" v-if="bounty.status === 1">
                 <Icon icon="mdi:format-list-bulleted" /> 查看申请列表
+              </button>
+              <button class="btn-edit" @click="handleEdit" v-if="bounty.status === 0 || bounty.status === 1">
+                <Icon icon="mdi:pencil" /> 编辑
+              </button>
+              <button class="btn-delete" @click="handleDelete" v-if="bounty.status === 0 || bounty.status === 1">
+                <Icon icon="mdi:delete-outline" /> 删除
               </button>
               <button class="btn-success" @click="handleComplete" v-if="bounty.status === 2">
                 <Icon icon="mdi:check-circle" /> 确认完成
@@ -427,6 +455,42 @@ async function handleComplete() {
 }
 .btn-success:hover {
   background: #5daf34;
+}
+.btn-edit {
+  padding: 9px 18px;
+  background: #fff;
+  color: #e8784a;
+  border: 1px solid #f0c8b0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-edit:hover {
+  background: rgba(232,120,74,0.06);
+  border-color: #e8784a;
+}
+.btn-delete {
+  padding: 9px 18px;
+  background: #fff;
+  color: #f56c6c;
+  border: 1px solid #fde2e2;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-delete:hover {
+  background: #fef0f0;
+  border-color: #f56c6c;
 }
 .app-list {
   margin-top: 14px;

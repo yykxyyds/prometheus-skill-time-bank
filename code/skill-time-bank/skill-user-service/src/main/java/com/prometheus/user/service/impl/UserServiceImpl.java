@@ -129,7 +129,8 @@ public class UserServiceImpl implements UserService {
         BeanUtil.copyProperties(user, vo);
         vo.setFollowerCount(followerCount);
         vo.setFollowingCount(followingCount);
-        vo.setSkillCount(0L); // 技能数由 skill-service 跨模块查询，暂为0
+        vo.setSkillCount(userMapper.countPublishedSkills(userId));
+        vo.setOrderCount(userMapper.countCompletedOrders(userId));
 
         return Result.success(vo);
     }
@@ -242,6 +243,44 @@ public class UserServiceImpl implements UserService {
         // 查用户名
         List<User> friends = userMapper.selectBatchIds(friendIds);
         return friends.stream().map(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", u.getId());
+            m.put("username", u.getUsername());
+            m.put("avatar", u.getAvatar());
+            m.put("bio", u.getBio());
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getFollowers(Long userId) {
+        LambdaQueryWrapper<UserFollow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserFollow::getFollowingId, userId);
+        List<UserFollow> follows = userFollowMapper.selectList(wrapper);
+        if (follows.isEmpty()) return new ArrayList<>();
+        List<Long> followerIds = follows.stream()
+                .map(UserFollow::getFollowerId).collect(Collectors.toList());
+        List<User> users = userMapper.selectBatchIds(followerIds);
+        return users.stream().map(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", u.getId());
+            m.put("username", u.getUsername());
+            m.put("avatar", u.getAvatar());
+            m.put("bio", u.getBio());
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getFollowing(Long userId) {
+        LambdaQueryWrapper<UserFollow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserFollow::getFollowerId, userId);
+        List<UserFollow> follows = userFollowMapper.selectList(wrapper);
+        if (follows.isEmpty()) return new ArrayList<>();
+        List<Long> followingIds = follows.stream()
+                .map(UserFollow::getFollowingId).collect(Collectors.toList());
+        List<User> users = userMapper.selectBatchIds(followingIds);
+        return users.stream().map(u -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", u.getId());
             m.put("username", u.getUsername());

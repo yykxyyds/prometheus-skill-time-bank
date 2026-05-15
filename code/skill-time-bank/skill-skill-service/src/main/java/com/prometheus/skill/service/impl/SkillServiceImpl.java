@@ -42,6 +42,15 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public void publishSkill(Skill skill) {
+        if (skill.getTitle() == null || skill.getTitle().trim().isEmpty()) {
+            throw new BusinessException("技能标题不能为空");
+        }
+        if (skill.getCategoryId() == null) {
+            throw new BusinessException("请选择技能分类");
+        }
+        if (skill.getPrice() == null || skill.getPrice() <= 0) {
+            throw new BusinessException("价格必须大于0");
+        }
         skill.setStatus(2); // 待审核
         skill.setViewCount(0);
         skill.setOrderCount(0);

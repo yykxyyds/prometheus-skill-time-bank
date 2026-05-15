@@ -3,6 +3,7 @@ package com.prometheus.wallet.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.prometheus.common.BusinessException;
 import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.order.mapper.SkillOrderMapper;
 import com.prometheus.wallet.entity.Review;
@@ -36,6 +37,33 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void createReview(Long orderId, Long reviewerId, Long targetId, Review review) {
+        if (targetId == null) {
+            throw new BusinessException("被评价人不能为空");
+        }
+        if (orderId == null) {
+            throw new BusinessException("订单不能为空");
+        }
+        if (review.getPunctualityScore() == null || review.getCommunicationScore() == null
+                || review.getProfessionalScore() == null || review.getAttitudeScore() == null) {
+            throw new BusinessException("请完成所有评分维度");
+        }
+
+        // 检查是否已评价过该订单
+        Long existingCount = reviewMapper.selectCount(
+                new LambdaQueryWrapper<Review>()
+                        .eq(Review::getOrderId, orderId)
+                        .eq(Review::getReviewerId, reviewerId));
+        if (existingCount > 0) {
+            throw new BusinessException("您已评价过该订单");
+        }
+
+        // 计算综合评分（如果前端未传，则从4维度取平均）
+        if (review.getScore() == null) {
+            int avgScore = (review.getPunctualityScore() + review.getCommunicationScore()
+                    + review.getProfessionalScore() + review.getAttitudeScore()) / 4;
+            review.setScore(avgScore);
+        }
+
         // 1. 填充/覆盖 review 字段
         review.setOrderId(orderId);
         review.setReviewerId(reviewerId);

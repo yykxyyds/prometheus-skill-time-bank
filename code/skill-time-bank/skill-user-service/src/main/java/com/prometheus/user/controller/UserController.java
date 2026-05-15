@@ -1,5 +1,6 @@
 package com.prometheus.user.controller;
 
+import com.prometheus.common.BusinessException;
 import com.prometheus.common.Result;
 import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.user.dto.LoginRequest;
@@ -45,7 +46,14 @@ public class UserController {
     @RequireAuth
     public Result<?> getOwnProfile(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return userService.getProfile(userId);
+        try {
+            return userService.getProfile(userId);
+        } catch (BusinessException e) {
+            if (e.getCode() == 400 && "用户不存在".equals(e.getMessage())) {
+                throw new BusinessException(401, "账号不存在或已被删除，请重新登录");
+            }
+            throw e;
+        }
     }
 
     /**
@@ -56,8 +64,15 @@ public class UserController {
     public Result<?> updateProfile(@RequestBody UpdateProfileRequest req,
                                    HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return userService.updateProfile(userId, req.getEmail(), req.getPhone(),
-                req.getBio(), req.getAvatar());
+        try {
+            return userService.updateProfile(userId, req.getEmail(), req.getPhone(),
+                    req.getBio(), req.getAvatar());
+        } catch (BusinessException e) {
+            if (e.getCode() == 400 && "用户不存在".equals(e.getMessage())) {
+                throw new BusinessException(401, "账号不存在或已被删除，请重新登录");
+            }
+            throw e;
+        }
     }
 
     /**
@@ -111,5 +126,21 @@ public class UserController {
     public Result<List<Map<String, Object>>> friends(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         return Result.success(userService.getFriends(userId));
+    }
+
+    /**
+     * 获取粉丝列表（无需登录）
+     */
+    @GetMapping("/{userId}/followers")
+    public Result<List<Map<String, Object>>> followers(@PathVariable Long userId) {
+        return Result.success(userService.getFollowers(userId));
+    }
+
+    /**
+     * 获取关注列表（无需登录）
+     */
+    @GetMapping("/{userId}/following")
+    public Result<List<Map<String, Object>>> following(@PathVariable Long userId) {
+        return Result.success(userService.getFollowing(userId));
     }
 }

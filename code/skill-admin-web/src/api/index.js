@@ -28,7 +28,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_user')
+      const msg = error.response?.data?.msg || '登录已过期，请重新登录'
+      ElMessage.error(msg)
       router.push('/login')
+      return Promise.reject(error)
     }
     const msg = error.response?.data?.msg || '网络错误'
     ElMessage.error(msg)

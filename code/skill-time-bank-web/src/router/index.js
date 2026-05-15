@@ -75,6 +75,12 @@ const routes = [
     component: () => import('../views/user/Profile.vue')
   },
   {
+    path: '/my-bounties',
+    name: 'MyBounties',
+    meta: { requiresAuth: true },
+    component: () => import('../views/user/MyBounties.vue')
+  },
+  {
     path: '/my-skills',
     name: 'MySkills',
     meta: { requiresAuth: true },

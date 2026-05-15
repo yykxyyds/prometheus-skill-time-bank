@@ -151,10 +151,18 @@ function formatTime(t) {
           <!-- 订单状态卡片 -->
           <div class="card status-card">
             <div class="card-header">
-              <h2>订单 #{{ order.orderNo }}</h2>
-              <span class="status-badge" :style="{ color: statusMap[order.status]?.color, background: statusMap[order.status]?.color + '18' }">
-                {{ statusMap[order.status]?.label || '未知' }}
-              </span>
+              <h2>订单详情</h2>
+              <div class="header-badges">
+                <span v-if="order.bountyId" class="type-badge bounty-badge">
+                  <Icon icon="mdi:clipboard-text-search" />悬赏订单
+                </span>
+                <span v-else class="type-badge skill-badge">
+                  <Icon icon="mdi:briefcase" />技能订单
+                </span>
+                <span class="status-badge" :style="{ color: statusMap[order.status]?.color, background: statusMap[order.status]?.color + '18' }">
+                  {{ statusMap[order.status]?.label || '未知' }}
+                </span>
+              </div>
             </div>
 
             <!-- 时间线 -->
@@ -191,19 +199,45 @@ function formatTime(t) {
                 <span>{{ order.frozenAmount || 0 }} 币</span>
               </div>
               <div class="info-item">
-                <label>买家ID</label>
-                <span>#{{ order.buyerId }}</span>
+                <label>买家</label>
+                <span class="user-cell" @click="router.push(`/profile/${order.buyerId}`)">
+                  <img v-if="order.buyerAvatar" :src="order.buyerAvatar" class="mini-avatar" />
+                  <span class="link">{{ order.buyerName || '#' + order.buyerId }}</span>
+                </span>
               </div>
               <div class="info-item">
-                <label>卖家ID</label>
-                <span>#{{ order.sellerId }}</span>
+                <label>卖家</label>
+                <span class="user-cell" @click="router.push(`/profile/${order.sellerId}`)">
+                  <img v-if="order.sellerAvatar" :src="order.sellerAvatar" class="mini-avatar" />
+                  <span class="link">{{ order.sellerName || '#' + order.sellerId }}</span>
+                </span>
               </div>
-              <div class="info-item">
-                <label>技能ID</label>
+              <div class="info-item" v-if="order.skillId || order.bountyId">
+                <label>{{ order.skillId ? '技能名称' : '悬赏名称' }}</label>
                 <span
+                  v-if="order.skillId"
                   class="link"
                   @click="router.push(`/skill/${order.skillId}`)"
-                >#{{ order.skillId }}</span>
+                >{{ order.skillName || '#' + order.skillId }}</span>
+                <span
+                  v-else
+                  class="link"
+                  @click="router.push(`/bounty/${order.bountyId}`)"
+                >{{ order.bountyTitle || '#' + order.bountyId }}</span>
+              </div>
+              <div class="info-item" v-if="order.status === 2 || order.status === 3">
+                <label>买方确认</label>
+                <span :style="{ color: order.buyerConfirm ? '#67c23a' : '#e6a23c' }">
+                  <Icon :icon="order.buyerConfirm ? 'mdi:check-circle' : 'mdi:clock-outline'" />
+                  {{ order.buyerConfirm ? '已确认' : '待确认' }}
+                </span>
+              </div>
+              <div class="info-item" v-if="order.status === 2 || order.status === 3">
+                <label>卖方确认</label>
+                <span :style="{ color: order.sellerConfirm ? '#67c23a' : '#e6a23c' }">
+                  <Icon :icon="order.sellerConfirm ? 'mdi:check-circle' : 'mdi:clock-outline'" />
+                  {{ order.sellerConfirm ? '已确认' : '待确认' }}
+                </span>
               </div>
               <div class="info-item">
                 <label>创建时间</label>
@@ -365,6 +399,9 @@ function formatTime(t) {
                 <dd>{{ isBuyer ? '买方' : '卖方' }}</dd>
               </div>
             </dl>
+            <router-link to="/orders/buyer" class="back-link">
+              <Icon icon="mdi:arrow-left" /> 返回订单列表
+            </router-link>
           </div>
         </div>
       </div>
@@ -406,6 +443,28 @@ function formatTime(t) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+.header-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.type-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.type-badge.skill-badge {
+  background: #e8f4fd;
+  color: #409eff;
+}
+.type-badge.bounty-badge {
+  background: #fef0e8;
+  color: #e8784a;
 }
 .status-badge {
   padding: 4px 14px;
@@ -472,6 +531,18 @@ function formatTime(t) {
 .link { color: #e8784a; cursor: pointer; }
 .info-full { grid-column: 1 / -1; }
 .link:hover { text-decoration: underline; }
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 /* Actions */
 .actions {
@@ -635,4 +706,37 @@ function formatTime(t) {
 .sum-item dd { font-size: 14px; color: #333; font-weight: 500; }
 .mono { font-family: monospace; font-size: 13px; }
 .amount-text { color: #e8784a !important; font-weight: 700 !important; }
+
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid #f5f0eb;
+  font-size: 13px;
+  color: #999;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.back-link:hover { color: #e8784a; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .side-col {
+    order: -1;
+  }
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .timeline {
+    padding: 0;
+  }
+  .timeline .step span {
+    font-size: 11px;
+  }
+}
 </style>

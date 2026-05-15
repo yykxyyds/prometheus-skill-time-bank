@@ -26,17 +26,21 @@ public class BountyController {
     private final HttpServletRequest request;
 
     /**
-     * 悬赏列表（无需登录，但按用户筛选时需登录）
+     * 悬赏列表（无需登录，默认只展示已发布未接单的悬赏）
      *
-     * @param type 筛选类型：null-全部, "publish"-我发布的, "take"-我接的, "complete"-我完成的
+     * @param keyword    关键词搜索（标题/描述）
+     * @param categoryId 分类ID筛选（可选）
+     * @param type       筛选类型：null-仅已发布, "all"-全部, "publish"-我发布的, "take"-我接的, "complete"-我完成的
      */
     @GetMapping("/list")
     public Result<Page<Bounty>> list(@RequestParam(name = "page", defaultValue = "1") int page,
                                      @RequestParam(name = "size", defaultValue = "10") int size,
                                      @RequestParam(name = "status", required = false) Integer status,
+                                     @RequestParam(name = "keyword", required = false) String keyword,
+                                     @RequestParam(name = "categoryId", required = false) Long categoryId,
                                      @RequestParam(name = "type", required = false) String type) {
         Long userId = type != null ? getCurrentUserId() : null;
-        Page<Bounty> result = bountyService.getBountyList(page, size, status, type, userId);
+        Page<Bounty> result = bountyService.getBountyList(page, size, status, keyword, categoryId, type, userId);
         return Result.success(result);
     }
 
@@ -113,6 +117,29 @@ public class BountyController {
         Long userId = getCurrentUserId();
         bountyService.completeBounty(id, userId);
         return Result.success("悬赏已完成");
+    }
+
+    /**
+     * 编辑悬赏（需登录，仅发布者且状态为待审核/已发布时可编辑）
+     */
+    @RequireAuth
+    @PutMapping("/{id}")
+    public Result<String> update(@PathVariable Long id, @RequestBody Bounty bounty) {
+        Long userId = getCurrentUserId();
+        bounty.setId(id);
+        bountyService.updateBounty(bounty, userId);
+        return Result.success("编辑成功");
+    }
+
+    /**
+     * 删除悬赏（需登录，仅发布者且状态为待审核/已发布时可删除）
+     */
+    @RequireAuth
+    @DeleteMapping("/{id}")
+    public Result<String> delete(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        bountyService.deleteBounty(id, userId);
+        return Result.success("删除成功");
     }
 
     /**

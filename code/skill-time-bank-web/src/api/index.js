@@ -25,12 +25,14 @@ api.interceptors.response.use(
   },
   error => {
     if (error.response?.status === 401) {
+      const msg = error.response?.data?.msg || '登录已过期，请重新登录'
+      ElMessage.error(msg)
       localStorage.removeItem('token')
       localStorage.removeItem('userId')
       localStorage.removeItem('username')
       localStorage.removeItem('role')
       localStorage.removeItem('balance')
-      window.location.href = '/login'
+      setTimeout(() => { window.location.href = '/login' }, 1500)
       return Promise.reject(error)
     }
     const msg = error.response?.data?.msg || '网络错误'

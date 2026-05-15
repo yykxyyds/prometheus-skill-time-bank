@@ -278,7 +278,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 | 代码规范  | 符合《阿里巴巴 Java 开发手册》\[强制]部分                           |
 | 部署    | Docker / Kubernetes 容器化                             |
 | 版本管理  | Git（GitHub）                                         |
-| 交付物   | 8项：任务书/SRS/计划与进度/详细设计/答辩PPT/演示视频/部署说明/代码+SQL+README |
+| 交付物   | 6项：任务书/SRS/计划与进度/详细设计/答辩PPT/代码+SQL+README |
 
 ## 目录结构
 
@@ -358,9 +358,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 |  3  | 项目计划与进度比较           | `.xlsx` |  ✅  |
 |  4  | 详细设计文档（含ER图）        | `.docx` |  ✅  |
 |  5  | 答辩PPT               | `.pptx` |  ✅  |
-|  6  | 演示视频                | 视频      |  ❌  |
-|  7  | 部署说明文档              | 文档      |  ❌  |
-|  8  | 项目代码 + SQL + README | 代码/文档   |  ✅  |
+|  6  | 项目代码 + SQL + README | 代码/文档   |  ✅  |
 
 ## 自检验证规范
 

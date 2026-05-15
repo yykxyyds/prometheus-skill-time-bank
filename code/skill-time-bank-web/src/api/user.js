@@ -43,3 +43,15 @@ export function getFollowStatus(targetId) {
 export function getFriends() {
   return api.get('/user/friends')
 }
+
+export function getFollowers(userId) {
+  return api.get(`/user/${userId}/followers`)
+}
+
+export function getFollowing(userId) {
+  return api.get(`/user/${userId}/following`)
+}
+
+export function getReputation(userId) {
+  return api.get(`/review/reputation/${userId}`)
+}

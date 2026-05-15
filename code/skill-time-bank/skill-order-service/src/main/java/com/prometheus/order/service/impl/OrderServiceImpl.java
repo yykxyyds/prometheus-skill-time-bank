@@ -2,6 +2,7 @@ package com.prometheus.order.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.prometheus.common.BusinessException;
 import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.order.mapper.SkillOrderMapper;
@@ -123,11 +124,16 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("买方确认完成, orderId={}, userId={}", orderId, userId);
 
+        // 重新读取订单，避免 TOCTOU 竞态：买卖双方同时确认时，
+        // 各自读到的对方确认状态可能已过时，需要从 DB 获取最新状态
+        order = skillOrderMapper.selectById(orderId);
         if (order.getSellerConfirm() != null && order.getSellerConfirm() == 1) {
             doCompleteOrder(orderId);
         } else {
-            order.setStatus(STATUS_WAIT_COMPLETE);
-            skillOrderMapper.updateById(order);
+            skillOrderMapper.update(null, new LambdaUpdateWrapper<SkillOrder>()
+                    .eq(SkillOrder::getId, orderId)
+                    .set(SkillOrder::getStatus, STATUS_WAIT_COMPLETE)
+                    .set(SkillOrder::getUpdateTime, LocalDateTime.now()));
         }
     }
 
@@ -154,11 +160,15 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("卖方确认完成, orderId={}, userId={}", orderId, userId);
 
+        // 重新读取订单，避免 TOCTOU 竞态（同 buyerConfirmComplete）
+        order = skillOrderMapper.selectById(orderId);
         if (order.getBuyerConfirm() != null && order.getBuyerConfirm() == 1) {
             doCompleteOrder(orderId);
         } else {
-            order.setStatus(STATUS_WAIT_COMPLETE);
-            skillOrderMapper.updateById(order);
+            skillOrderMapper.update(null, new LambdaUpdateWrapper<SkillOrder>()
+                    .eq(SkillOrder::getId, orderId)
+                    .set(SkillOrder::getStatus, STATUS_WAIT_COMPLETE)
+                    .set(SkillOrder::getUpdateTime, LocalDateTime.now()));
         }
     }
 
@@ -230,7 +240,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public SkillOrder getOrderDetail(Long orderId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        SkillOrder order = skillOrderMapper.selectByIdWithDetails(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -239,18 +249,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<SkillOrder> getBuyerOrders(Long buyerId) {
-        LambdaQueryWrapper<SkillOrder> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SkillOrder::getBuyerId, buyerId)
-               .orderByDesc(SkillOrder::getCreateTime);
-        return skillOrderMapper.selectList(wrapper);
+        return skillOrderMapper.selectListByBuyerId(buyerId);
     }
 
     @Override
     public List<SkillOrder> getSellerOrders(Long sellerId) {
-        LambdaQueryWrapper<SkillOrder> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SkillOrder::getSellerId, sellerId)
-               .orderByDesc(SkillOrder::getCreateTime);
-        return skillOrderMapper.selectList(wrapper);
+        return skillOrderMapper.selectListBySellerId(sellerId);
     }
 
     private String getStatusDesc(int status) {

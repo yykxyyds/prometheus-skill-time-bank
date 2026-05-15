@@ -1,12 +1,17 @@
 <script setup>
-import { ref } from 'vue'
-import { publishBounty } from '../../api/skill'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { publishBounty, updateBounty } from '../../api/skill'
+import { useRouter, useRoute } from 'vue-router'
+import api from '../../api/index'
 import { Icon } from '@iconify/vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
+const editId = route.query.edit || null
+const isEdit = !!editId
 const loading = ref(false)
+const pageLoading = ref(false)
 const form = ref({
   title: '',
   description: '',
@@ -20,17 +25,39 @@ const rules = {
   reward: [{ required: true, message: '请输入悬赏金额', trigger: 'blur' }]
 }
 
+onMounted(async () => {
+  if (isEdit) {
+    pageLoading.value = true
+    try {
+      const res = await api.get(`/bounty/${editId}`)
+      const b = res.data || {}
+      form.value.title = b.title || ''
+      form.value.description = b.description || ''
+      form.value.reward = b.reward || null
+      form.value.deadline = b.deadline ? b.deadline.substring(0, 10) : ''
+    } catch { /* handled */ }
+    finally { pageLoading.value = false }
+  }
+})
+
 async function submit() {
   loading.value = true
   try {
-    await publishBounty({
+    const data = {
       title: form.value.title,
       description: form.value.description,
       reward: form.value.reward,
       deadline: form.value.deadline ? form.value.deadline + 'T23:59:59' : null
-    })
-    ElMessage.success('悬赏发布成功！')
-    router.push('/bounty')
+    }
+    if (isEdit) {
+      await updateBounty(editId, data)
+      ElMessage.success('修改成功！')
+      router.push(`/bounty/${editId}`)
+    } else {
+      await publishBounty(data)
+      ElMessage.success('悬赏发布成功！')
+      router.push('/bounty')
+    }
   } catch (e) {
     // handled by interceptor
   } finally {
@@ -43,12 +70,12 @@ async function submit() {
   <div class="create-bounty">
     <div class="page-header">
       <div>
-        <h2>发布需求悬赏</h2>
-        <p>描述你的需求，设置悬赏金额，等待有能力的用户来接单</p>
+        <h2>{{ isEdit ? '编辑需求悬赏' : '发布需求悬赏' }}</h2>
+        <p>{{ isEdit ? '修改你的悬赏内容和金额' : '描述你的需求，设置悬赏金额，等待有能力的用户来接单' }}</p>
       </div>
     </div>
 
-    <div class="form-card">
+    <div class="form-card" v-loading="pageLoading">
       <el-form :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
         <el-form-item label="悬赏标题" prop="title">
           <el-input v-model="form.title" placeholder="例如：帮忙设计一个Logo" maxlength="100" show-word-limit size="large" />
@@ -86,7 +113,7 @@ async function submit() {
           <button type="button" class="cancel-btn" @click="router.back()">取消</button>
           <button type="submit" class="submit-btn" :disabled="loading">
             <Icon icon="mdi:plus-circle" v-if="!loading" />
-            {{ loading ? '发布中...' : '发布悬赏' }}
+            {{ loading ? (isEdit ? '保存中...' : '发布中...') : (isEdit ? '保存修改' : '发布悬赏') }}
           </button>
         </div>
       </el-form>

@@ -85,15 +85,17 @@ CREATE TABLE `bounty` (
     `title` VARCHAR(100) NOT NULL COMMENT '悬赏标题',
     `description` TEXT COMMENT '需求描述',
     `reward` INT NOT NULL COMMENT '悬赏金额（时间币）',
+    `category_id` BIGINT DEFAULT NULL COMMENT '技能分类ID',
     `deadline` DATETIME DEFAULT NULL COMMENT '截止时间',
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 1已发布 2已接单 3已完成 4已过期',
+    `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态: 0待审核 1已发布 2已接单 3已完成 4已拒绝',
     `applicant_id` BIGINT DEFAULT NULL COMMENT '接单人用户ID',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`),
     KEY `idx_status` (`status`),
-    KEY `idx_deadline` (`deadline`)
+    KEY `idx_deadline` (`deadline`),
+    KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='需求悬赏表';
 
 -- ============================================

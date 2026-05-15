@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import api from '../api/index'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -7,8 +8,21 @@ export const useUserStore = defineStore('user', () => {
   const username = ref(localStorage.getItem('username') || '')
   const role = ref(localStorage.getItem('role') || '')
   const balance = ref(Number(localStorage.getItem('balance') || '0'))
+  const unreadCount = ref(0)
 
   const isLoggedIn = computed(() => !!token.value)
+
+  async function refreshUnread() {
+    if (!token.value) { unreadCount.value = 0; return }
+    try {
+      const [msgRes, notifRes] = await Promise.all([
+        api.get('/chat/private/unread'),
+        api.get('/notification/unread-count')
+      ])
+      unreadCount.value = (msgRes.data || 0) + (notifRes.data || 0)
+    } catch { /* silent */ }
+  }
+
 function setUser(data) {
     token.value = data.token
     userId.value = data.userId
@@ -31,5 +45,5 @@ function setUser(data) {
     localStorage.clear()
   }
 
-  return { token, userId, username, role, balance, isLoggedIn, setUser, logout }
+  return { token, userId, username, role, balance, unreadCount, isLoggedIn, setUser, logout, refreshUnread }
 })
