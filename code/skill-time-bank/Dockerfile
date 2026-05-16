@@ -6,6 +6,7 @@ RUN apk add --no-cache tzdata wget && \
     echo "Asia/Shanghai" > /etc/timezone
 WORKDIR /app
 RUN mkdir -p /app/uploads
+COPY uploads/ /app/uploads/
 COPY skill-gateway/target/skill-gateway-1.0.2.jar app.jar
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

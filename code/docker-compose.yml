@@ -32,6 +32,7 @@ services:
     container_name: prometheus-backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/prometheus_skill_bank?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      APP_UPLOAD_DIR: /app/uploads
     ports:
       - "8080:8080"
     volumes:
