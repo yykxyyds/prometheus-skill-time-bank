@@ -2,6 +2,7 @@ package com.prometheus.gateway.config;
 
 import com.prometheus.user.interceptor.UserAuthInterceptor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -17,6 +18,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final UserAuthInterceptor userAuthInterceptor;
 
+    @Value("${app.upload-dir}")
+    private String uploadDir;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userAuthInterceptor)
@@ -26,6 +30,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
+                .addResourceLocations("file:" + uploadDir + "/");
     }
 }

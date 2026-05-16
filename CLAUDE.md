@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 子模块                    | 包路径                      | 职责                                                        | 关键类                                                                                                   |
 | ---------------------- | ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `skill-common`         | `com.prometheus.common`  | 统一响应体、全局异常、JWT、BaseEntity、`@RequireAuth` 注解、Jackson 日期格式化 | `Result`, `GlobalExceptionHandler`, `JwtUtil`, `BaseEntity`, `JacksonConfig`                          |
-| `skill-user-service`   | `com.prometheus.user`    | 注册/登录/个人信息/关注/文件上传                                        | `UserController`, `UploadController`, `User` entity                                                   |
+| `skill-user-service`   | `com.prometheus.user`    | 注册/登录/个人信息/关注/文件上传/通知                                        | `UserController`, `UploadController`, `NotificationController`, `User` entity                        |
 | `skill-skill-service`  | `com.prometheus.skill`   | 技能广场/发布/分类搜索/需求悬赏                                         | `SkillController`, `BountyController`, `CategoryController`                                           |
 | `skill-order-service`  | `com.prometheus.order`   | 订单状态机/订单聊天(HTTP)/私信/时间币冻结                                 | `OrderController`, `ChatController`, `PrivateMessageController`                                       |
 | `skill-wallet-service` | `com.prometheus.wallet`  | 钱包余额/时间流水/双盲评价/申诉/公告                                      | `WalletController`, `ReviewController`, `AppealController`, `AnnouncementController`                  |
@@ -55,26 +55,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 全量编译
-cd 项目代码/skill-time-bank && mvn clean compile
+cd code/skill-time-bank && mvn clean compile
 
 # 打包（生成 fat JAR，约 36MB）
 mvn clean package -DskipTests -pl skill-gateway -am
 
 # 启动后端（必须用 java -jar，不要用 spring-boot:run）
-java -jar 项目代码/skill-time-bank/skill-gateway/target/skill-gateway-1.0.2.jar
+java -jar code/skill-time-bank/skill-gateway/target/skill-gateway-1.0.2.jar
 
 # 编译单个模块
 mvn clean compile -pl skill-common -am
 
 # 导入测试数据（init.sql 仅基础数据，需 seed 脚本才有业务演示数据）
 MSQL="D:/MySQL/mysql-8.0.45-winx64/bin/mysql.exe -u root -proot -h 127.0.0.1 -P 3306 prometheus_skill_bank"
-$MSQL < 项目代码/database/seed_demo.sql
+$MSQL < code/database/seed_demo.sql
 
 # 启动用户前端（端口 5173，首次需 npm install）
-cd 项目代码/skill-time-bank-web && npm install && npm run dev
+cd code/skill-time-bank-web && npm install && npm run dev
 
 # 启动管理后台（端口 5174，首次需 npm install）
-cd 项目代码/skill-admin-web && npm install && npm run dev
+cd code/skill-admin-web && npm install && npm run dev
 
 # Swagger UI
 # http://localhost:8080/swagger-ui.html
@@ -85,9 +85,9 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 - MySQL 8.0.45，服务名 `MySQL80`，安装于 `D:\MySQL\mysql-8.0.45-winx64`，数据目录 `D:\MySQL\data`
 - C 盘已无 MySQL（Installer 已清理），全部在 D 盘
 - 库名: `prometheus_skill_bank`，共 15 张表
-- 建表脚本: `项目代码/database/init.sql`
+- 建表脚本: `code/database/init.sql`
 - 初始数据：管理员 admin/admin123、3个测试用户、8 个技能分类
-- 测试数据脚本：`项目代码/database/seed_demo.sql`（演示用）、`seed_test_data.sql`（较完整测试数据）。**init.sql 仅有基础数据**，业务表（技能/订单/悬赏/评价等）初始为空，需执行 seed 脚本才能在页面看到交互效果
+- 测试数据脚本：`code/database/seed_demo.sql`（演示用）、`seed_test_data.sql`（较完整测试数据）。**init.sql 仅有基础数据**，业务表（技能/订单/悬赏/评价等）初始为空，需执行 seed 脚本才能在页面看到交互效果
 - 连接URL: `jdbc:mysql://localhost:3306/prometheus_skill_bank?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai`
 
 ```bash
@@ -97,7 +97,7 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 
 ## Docker 部署
 
-课程硬性要求容器化部署。`项目代码/docker-compose.yml` 编排 4 个服务：
+课程硬性要求容器化部署。`code/docker-compose.yml` 编排 4 个服务：
 
 | 服务             | 容器名                       | 端口      | 说明                      |
 | -------------- | ------------------------- | ------- | ----------------------- |
@@ -108,7 +108,7 @@ cd 项目代码/skill-admin-web && npm install && npm run dev
 
 ```bash
 # 启动全部服务（-d 后台）
-cd 项目代码 && docker compose up -d
+cd code && docker compose up -d
 
 # 仅重建后端（代码改动后）
 docker compose up -d --build backend
@@ -128,7 +128,7 @@ docker compose down -v   # 同时删除数据卷（重置数据库）
 
 ```
 skill-time-bank-web/src/
-├── api/                # Axios 封装 + 按模块的 API 调用（index.js / user.js / skill.js）
+├── api/                # Axios 封装 + 按模块的 API 调用（index.js / user.js / skill.js / message.js / notification.js）
 ├── stores/user.js      # Pinia store：token, userId, username, role, balance
 ├── composables/        # 可复用组合式函数（useScrollReveal.js 滚动动画）
 ├── router/index.js     # 路由，beforeEach 做 auth 守卫
@@ -140,7 +140,7 @@ skill-time-bank-web/src/
 │   ├── bounty/         # Create.vue（发布悬赏）, Detail.vue（悬赏详情）
 │   ├── Messages.vue    # 私信列表（会话列表+消息详情）
 │   ├── order/          # OrderList.vue（买方/卖方订单列表）, Detail.vue（订单详情+聊天+评价）
-│   └── user/           # Wallet, Profile, MySkills, Appeal（申诉提交）
+│   └── user/           # Wallet, Profile, MySkills, MyBounties, Appeal（钱包/资料/技能/悬赏/申诉）
 ├── App.vue
 ├── main.js
 └── style.css
@@ -158,7 +158,7 @@ skill-admin-web/src/
 ├── views/
 │   ├── Login.vue       # 管理员登录
 │   ├── Dashboard.vue   # 管理仪表盘
-│   └── admin/          # Users.vue（用户管理）, Skills.vue（技能审核）, Appeals.vue（申诉处理）, Announcements.vue（公告管理）
+│   └── admin/          # Users.vue（用户管理）, Skills.vue（技能审核）, Appeals.vue（申诉处理）, Announcements.vue（公告管理）, Bounties.vue（悬赏管理）
 ├── App.vue
 ├── main.js
 └── style.css
@@ -232,6 +232,7 @@ GET  /api/announcement/{id} 公告详情
 - 订单: `POST /api/order`, `PUT /api/order/{id}/confirm|buyer-complete|seller-complete|cancel`, `GET /api/order/{id}|/buyer|/seller`
 - 聊天: `GET/POST /api/chat/order/{orderId}`
 - 私信: `POST /api/chat/private/send`, `GET /api/chat/private/conversations|/messages/{userId}|/unread`, `PUT /api/chat/private/read/{userId}`
+- 通知: `GET /api/notification/list`, `GET /api/notification/unread-count`, `PUT /api/notification/{id}/read`
 - 钱包: `GET /api/wallet/balance`, `GET /api/wallet/transactions`
 - 评价: `POST /api/review`
 - 申诉: `POST /api/appeal`
@@ -266,6 +267,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 4. `@RequestParam` 必须显式写 `name` 属性
 5. 前端 `style.css` 须清理 Vite 模板预设样式
 6. 不要用 `&&` 链关键构建命令
+7. 文件上传/图片访问不能用相对路径 `file:uploads/`，必须用绝对路径配置 `app.upload-dir`
 
 ## 课程硬性要求
 
@@ -323,7 +325,7 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 │   ├── generate_ppt_v2.js           # pptxgenjs 生成 PPT 脚本（v2 改进版）
 │   └── screenshot.py                # Playwright 自动截取前端页面（5173/5174 端口）
 │
-├── 项目代码/                         # 见下方"项目代码"节
+├── code/                         # 所有项目代码
 │   ├── database/init.sql            # 15张表 DDL + 初始数据
 │   ├── skill-time-bank/             # 后端 Maven 多模块工程（7 子模块）
 │   ├── skill-time-bank-web/         # 用户端 Vue 3 工程
@@ -430,3 +432,16 @@ POST /api/upload/avatar               上传头像（multipart, ≤5MB, 仅图�
 **问题**：`cmd //c "taskkill ..." | awk ... && cd ... && mvn clean compile` 中，`awk` 的退出码（128）导致 `&&` 短路，编译未执行。
 
 **解决**：每个独立命令分开调用，不要用 `&&` 串联关键构建命令。kill → compile → start 各自独立执行。
+
+### 8. 文件上传/图片访问不能用相对路径
+
+**问题**：`WebMvcConfig.java` 和 `UploadController.java` 都用 `file:uploads/` 相对路径。`java -jar` 运行时 JVM 工作目录不确定（可能不是项目目录），导致图片返回 404、上传文件存到错误位置。前端所有头像/封面图都不显示。
+
+**原因**：相对路径依赖于 JVM 进程的 working directory，不同启动方式（IDE、java -jar、Docker）下 working directory 不同，结果不一致。
+
+**解决**：
+
+- `application.yml` 新增 `app.upload-dir` 配置项，指向绝对路径
+- `WebMvcConfig.java`：`@Value("${app.upload-dir}")` 注入后用 `"file:" + uploadDir + "/"` 
+- `UploadController.java`：`Paths.get(this.uploadDir, subDir)` 代替 `Paths.get("uploads", subDir)`
+- **Docker 部署时**需要修改 `app.upload-dir` 为容器内路径（如 `/app/uploads`），且 Dockerfile 需 `COPY` 种子图片

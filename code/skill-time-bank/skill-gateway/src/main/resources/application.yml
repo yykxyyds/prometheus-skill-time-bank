@@ -5,6 +5,9 @@ server:
       charset: UTF-8
       force: true
 
+app:
+  upload-dir: D:/Agent工作区/Claude Code工作区/综合实训项目/code/skill-time-bank/uploads
+
 spring:
   application:
     name: skill-time-bank

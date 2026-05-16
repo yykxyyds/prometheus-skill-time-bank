@@ -4,6 +4,7 @@ import com.prometheus.common.Result;
 import com.prometheus.common.annotation.RequireAuth;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,6 +23,9 @@ import java.util.UUID;
 public class UploadController {
 
     private static final long MAX_SIZE = 5 * 1024 * 1024;
+
+    @Value("${app.upload-dir}")
+    private String uploadDir;
 
     @PostMapping("/avatar")
     @RequireAuth
@@ -56,7 +60,7 @@ public class UploadController {
             if (ext.equals("jpeg")) ext = "jpg";
             String filename = UUID.randomUUID() + "." + ext;
 
-            Path uploadDir = Paths.get("uploads", subDir);
+            Path uploadDir = Paths.get(this.uploadDir, subDir);
             Files.createDirectories(uploadDir);
             file.transferTo(uploadDir.resolve(filename));
 
