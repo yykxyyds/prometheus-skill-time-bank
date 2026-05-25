@@ -3,6 +3,7 @@ package com.prometheus.wallet.controller;
 import com.prometheus.common.Result;
 import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.wallet.entity.Review;
+import com.prometheus.wallet.entity.ReviewVO;
 import com.prometheus.wallet.service.ReviewService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class ReviewController {
     }
 
     @GetMapping("/user/{userId}")
-    public Result<List<Review>> getUserReviews(@PathVariable Long userId) {
+    public Result<List<ReviewVO>> getUserReviews(@PathVariable Long userId) {
         return Result.success(reviewService.getVisibleReviews(userId));
     }
 

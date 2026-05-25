@@ -2,6 +2,7 @@ package com.prometheus.user.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.prometheus.common.BaseEntity;
 import lombok.Data;
@@ -33,4 +34,7 @@ public class User extends BaseEntity {
     private Integer frozenBalance;
 
     private String bio;
+
+    @Version
+    private Integer version;
 }

@@ -45,7 +45,8 @@ public class AdminBountyController {
                                      @PathVariable Long id,
                                      @RequestBody Map<String, Object> body) {
         checkAdmin(request);
-        Integer status = (Integer) body.get("status");
+        Integer status = body.get("status") instanceof Number
+                ? ((Number) body.get("status")).intValue() : null;
         if (status == null || (status != 1 && status != 4)) {
             throw new BusinessException(400, "状态值无效（1=通过，4=拒绝）");
         }

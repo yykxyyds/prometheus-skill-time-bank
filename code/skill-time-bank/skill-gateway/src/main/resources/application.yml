@@ -6,7 +6,7 @@ server:
       force: true
 
 app:
-  upload-dir: D:/Agent工作区/Claude Code工作区/综合实训项目/code/skill-time-bank/uploads
+  upload-dir: D:/Dev/workspace/Pwrokspace/Claude code/prometheus-skill-time-bank/code/skill-time-bank/uploads
 
 spring:
   application:
@@ -14,7 +14,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/prometheus_skill_bank?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:
@@ -28,11 +28,6 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: assign_id
-
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 10MB
 
 springdoc:
   api-docs:

@@ -1,7 +1,7 @@
 package com.prometheus.wallet.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.prometheus.wallet.entity.Review;
+import com.prometheus.wallet.entity.ReviewVO;
 
 import java.util.List;
 import java.util.Map;
@@ -14,9 +14,9 @@ public interface ReviewService {
     void createReview(Long orderId, Long reviewerId, Long targetId, Review review);
 
     /**
-     * 获取某用户可见的评价（is_visible=1）
+     * 获取某用户可见的评价列表（含评价人信息）
      */
-    List<Review> getVisibleReviews(Long userId);
+    List<ReviewVO> getVisibleReviews(Long userId);
 
     /**
      * 获取信誉雷达图数据

@@ -1,5 +1,6 @@
 package com.prometheus.order.controller;
 
+import com.prometheus.common.BusinessException;
 import com.prometheus.common.Result;
 import com.prometheus.common.annotation.RequireAuth;
 import com.prometheus.order.entity.SkillOrder;
@@ -78,8 +79,13 @@ public class OrderController {
 
     @RequireAuth
     @GetMapping("/{id}")
-    public Result<SkillOrder> getOrderDetail(@PathVariable Long id) {
-        return Result.success(orderService.getOrderDetail(id));
+    public Result<SkillOrder> getOrderDetail(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = getUserId(request);
+        SkillOrder order = orderService.getOrderDetail(id);
+        if (!order.getBuyerId().equals(userId) && !order.getSellerId().equals(userId)) {
+            throw new BusinessException(403, "无权查看该订单");
+        }
+        return Result.success(order);
     }
 
     @RequireAuth

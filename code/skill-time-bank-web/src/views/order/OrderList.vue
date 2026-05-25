@@ -132,7 +132,9 @@ async function handleAction(order, action) {
                 <Icon icon="mdi:clipboard-text-search" class="order-type-icon" /> {{ order.bountyTitle }}
               </span>
               <span class="order-user" v-if="isBuyer ? order.sellerName : order.buyerName">
-                {{ isBuyer ? '卖家 ' : '买家 ' }}{{ isBuyer ? order.sellerName : order.buyerName }}
+                {{ isBuyer ? '卖家 ' : '买家 ' }}
+                <span class="link" @click.stop="router.push(`/profile/${isBuyer ? order.sellerId : order.buyerId}`)">{{ isBuyer ? order.sellerName : order.buyerName }}</span>
+                <Icon icon="mdi:message-text-outline" class="msg-icon-btn" @click.stop="router.push(`/messages?userId=${isBuyer ? order.sellerId : order.buyerId}`)" />
               </span>
             </div>
             <div class="order-time">{{ order.createTime }}</div>
@@ -319,6 +321,21 @@ async function handleAction(order, action) {
   font-size: 13px;
   color: #bbb;
 }
+.order-user .link {
+  color: #e8784a;
+  cursor: pointer;
+}
+.order-user .link:hover { text-decoration: underline; }
+.msg-icon-btn {
+  font-size: 14px;
+  color: #e8784a;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+.msg-icon-btn:hover { opacity: 1; }
 
 /* 操作 */
 .order-actions {

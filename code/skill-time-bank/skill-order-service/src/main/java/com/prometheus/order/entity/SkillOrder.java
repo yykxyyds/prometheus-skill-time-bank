@@ -1,6 +1,7 @@
 package com.prometheus.order.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import com.prometheus.common.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -40,4 +41,7 @@ public class SkillOrder extends BaseEntity {
     private String skillName;
     @com.baomidou.mybatisplus.annotation.TableField(exist = false)
     private String bountyTitle;
+
+    @Version
+    private Integer version;
 }

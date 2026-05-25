@@ -6,19 +6,24 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.prometheus.common.BusinessException;
 import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.order.mapper.SkillOrderMapper;
+import com.prometheus.user.entity.User;
+import com.prometheus.user.mapper.UserMapper;
 import com.prometheus.wallet.entity.Review;
+import com.prometheus.wallet.entity.ReviewVO;
 import com.prometheus.wallet.entity.UserSkillTag;
 import com.prometheus.wallet.mapper.ReviewMapper;
 import com.prometheus.wallet.mapper.UserSkillTagMapper;
 import com.prometheus.wallet.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +38,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final UserSkillTagMapper userSkillTagMapper;
     private final SkillOrderMapper skillOrderMapper;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -59,8 +65,8 @@ public class ReviewServiceImpl implements ReviewService {
 
         // 计算综合评分（如果前端未传，则从4维度取平均）
         if (review.getScore() == null) {
-            int avgScore = (review.getPunctualityScore() + review.getCommunicationScore()
-                    + review.getProfessionalScore() + review.getAttitudeScore()) / 4;
+            int avgScore = Math.round((review.getPunctualityScore() + review.getCommunicationScore()
+                    + review.getProfessionalScore() + review.getAttitudeScore()) / 4.0f);
             review.setScore(avgScore);
         }
 
@@ -127,17 +133,56 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public List<Review> getVisibleReviews(Long userId) {
-        return reviewMapper.selectList(
+    public List<ReviewVO> getVisibleReviews(Long userId) {
+        List<Review> reviews = reviewMapper.selectList(
                 new LambdaQueryWrapper<Review>()
                         .eq(Review::getTargetId, userId)
                         .eq(Review::getIsVisible, 1)
                         .orderByDesc(Review::getCreateTime));
+
+        if (reviews.isEmpty()) return Collections.emptyList();
+
+        Set<Long> reviewerIds = reviews.stream().map(Review::getReviewerId).collect(Collectors.toSet());
+        List<User> users = userMapper.selectBatchIds(reviewerIds);
+        Map<Long, User> userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        List<Long> orderIds = reviews.stream().map(Review::getOrderId).distinct().collect(Collectors.toList());
+        List<SkillOrder> orders = skillOrderMapper.selectBatchIdsWithDetails(orderIds);
+        Map<Long, SkillOrder> orderMap = orders.stream().collect(Collectors.toMap(SkillOrder::getId, o -> o));
+
+        return reviews.stream().map(r -> {
+            ReviewVO vo = new ReviewVO();
+            vo.setId(r.getId());
+            vo.setOrderId(r.getOrderId());
+            vo.setReviewerId(r.getReviewerId());
+            vo.setTargetId(r.getTargetId());
+            vo.setScore(r.getScore());
+            vo.setPunctualityScore(r.getPunctualityScore());
+            vo.setCommunicationScore(r.getCommunicationScore());
+            vo.setProfessionalScore(r.getProfessionalScore());
+            vo.setAttitudeScore(r.getAttitudeScore());
+            vo.setComment(r.getComment());
+            vo.setCreateTime(r.getCreateTime());
+
+            User u = userMap.get(r.getReviewerId());
+            if (u != null) {
+                vo.setReviewerName(u.getUsername());
+                vo.setReviewerAvatar(u.getAvatar());
+            }
+
+            SkillOrder o = orderMap.get(r.getOrderId());
+            if (o != null) {
+                vo.setReviewerRole(o.getBuyerId().equals(r.getReviewerId()) ? "BUYER" : "SELLER");
+                vo.setOrderContext(o.getSkillName() != null ? o.getSkillName() : o.getBountyTitle());
+            }
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     @Override
     public Map<String, Object> getReputationData(Long userId) {
         Map<String, Object> result = new HashMap<>();
+        result.put("debug_new_code", "YES");
 
         // 综合平均分 & 评价总数
         QueryWrapper<Review> avgWrapper = new QueryWrapper<>();
@@ -156,10 +201,23 @@ public class ReviewServiceImpl implements ReviewService {
         result.put("buyerScore", avgScore.setScale(1, RoundingMode.HALF_UP));
         result.put("sellerScore", avgScore.setScale(1, RoundingMode.HALF_UP));
 
-        // 买方/卖方评分：通过关联订单区分用户在交易中的角色
+        // 评分分布（1-5星计数）
         if (reviewCount > 0) {
             List<Review> reviews = reviewMapper.selectList(
                     new LambdaQueryWrapper<Review>().eq(Review::getTargetId, userId));
+
+            int[] dist = new int[5];
+            int good = 0, bad = 0;
+            for (Review r : reviews) {
+                int s = r.getScore();
+                if (s >= 1 && s <= 5) dist[s - 1]++;
+                if (s >= 4) good++;
+                else if (s <= 2) bad++;
+            }
+            result.put("scoreDistribution", dist);
+            result.put("goodRate", reviewCount > 0 ? Math.round(good * 100.0f / (int) reviewCount) : 0);
+
+            // 买方/卖方评分：通过关联订单区分用户在交易中的角色
             Set<Long> orderIds = reviews.stream()
                     .map(Review::getOrderId)
                     .collect(Collectors.toSet());
@@ -213,6 +271,7 @@ public class ReviewServiceImpl implements ReviewService {
         return result;
     }
 
+    @Scheduled(fixedRate = 3600000) // 每小时检查一次到期评价
     @Override
     public void checkAndRevealReviews() {
         long updated = reviewMapper.update(null, new LambdaUpdateWrapper<Review>()

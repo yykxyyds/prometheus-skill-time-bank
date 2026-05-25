@@ -50,7 +50,11 @@ public class AdminAppealController {
         if (result == null || result.isBlank()) {
             throw new BusinessException(400, "处理结果不能为空");
         }
-        appealService.handleAppeal(id, result, adminId);
+        String decision = body.get("decision");
+        if (decision == null || (!"ACCEPT_REFUND".equals(decision) && !"ACCEPT_COMPLETE".equals(decision) && !"REJECT".equals(decision))) {
+            throw new BusinessException(400, "decision 必须为 ACCEPT_REFUND / ACCEPT_COMPLETE / REJECT");
+        }
+        appealService.handleAppeal(id, result, adminId, decision);
         return Result.success();
     }
 

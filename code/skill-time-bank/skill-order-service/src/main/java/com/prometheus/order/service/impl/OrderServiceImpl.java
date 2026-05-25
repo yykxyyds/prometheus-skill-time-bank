@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.prometheus.common.BusinessException;
+import com.prometheus.common.TransactionRecorder;
 import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.order.mapper.SkillOrderMapper;
 import com.prometheus.order.service.OrderService;
@@ -24,6 +25,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final SkillOrderMapper skillOrderMapper;
     private final UserMapper userMapper;
+    private final TransactionRecorder transactionRecorder;
 
     private static final int STATUS_PENDING = 1;
     private static final int STATUS_IN_PROGRESS = 2;
@@ -67,7 +69,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void confirmOrder(Long orderId, Long sellerId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        SkillOrder order = skillOrderMapper.selectByIdForUpdate(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -78,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("订单状态不正确，当前状态：" + getStatusDesc(order.getStatus()));
         }
 
-        User buyer = userMapper.selectById(order.getBuyerId());
+        User buyer = userMapper.selectByIdForUpdate(order.getBuyerId());
         if (buyer == null) {
             throw new BusinessException("买方用户不存在");
         }
@@ -87,11 +89,16 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("买方时间币余额不足");
         }
 
-        buyer.setBalance(buyerBalance - order.getAmount());
+        int balanceAfter = buyerBalance - order.getAmount();
+        buyer.setBalance(balanceAfter);
         int frozen = buyer.getFrozenBalance() == null ? 0 : buyer.getFrozenBalance();
         buyer.setFrozenBalance(frozen + order.getAmount());
         buyer.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(buyer);
+
+        transactionRecorder.record(order.getBuyerId(), orderId, "FREEZE",
+                order.getAmount(), balanceAfter,
+                "订单「" + order.getOrderNo() + "」冻结时间币");
 
         order.setStatus(STATUS_IN_PROGRESS);
         order.setFrozenAmount(order.getAmount());
@@ -104,7 +111,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void buyerConfirmComplete(Long orderId, Long userId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        // SELECT FOR UPDATE — 悲观锁防止买卖双方同时确认时的竞态
+        SkillOrder order = skillOrderMapper.selectByIdForUpdate(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -118,29 +126,30 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("您已确认完成，请勿重复操作");
         }
 
-        order.setBuyerConfirm(1);
-        order.setUpdateTime(LocalDateTime.now());
-        skillOrderMapper.updateById(order);
-
-        log.info("买方确认完成, orderId={}, userId={}", orderId, userId);
-
-        // 重新读取订单，避免 TOCTOU 竞态：买卖双方同时确认时，
-        // 各自读到的对方确认状态可能已过时，需要从 DB 获取最新状态
-        order = skillOrderMapper.selectById(orderId);
+        // 买方确认，检查卖方是否已确认（锁保护下，无需重读）
         if (order.getSellerConfirm() != null && order.getSellerConfirm() == 1) {
+            // 双方都已确认 → 直接完成
+            order.setBuyerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
             doCompleteOrder(orderId);
         } else {
+            // 仅买方确认 → 设置 WAIT_COMPLETE
             skillOrderMapper.update(null, new LambdaUpdateWrapper<SkillOrder>()
                     .eq(SkillOrder::getId, orderId)
+                    .set(SkillOrder::getBuyerConfirm, 1)
                     .set(SkillOrder::getStatus, STATUS_WAIT_COMPLETE)
                     .set(SkillOrder::getUpdateTime, LocalDateTime.now()));
         }
+
+        log.info("买方确认完成, orderId={}, userId={}", orderId, userId);
     }
 
     @Override
     @Transactional
     public void sellerConfirmComplete(Long orderId, Long userId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        // SELECT FOR UPDATE — 悲观锁防止买卖双方同时确认时的竞态
+        SkillOrder order = skillOrderMapper.selectByIdForUpdate(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -154,22 +163,23 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("您已确认完成，请勿重复操作");
         }
 
-        order.setSellerConfirm(1);
-        order.setUpdateTime(LocalDateTime.now());
-        skillOrderMapper.updateById(order);
-
-        log.info("卖方确认完成, orderId={}, userId={}", orderId, userId);
-
-        // 重新读取订单，避免 TOCTOU 竞态（同 buyerConfirmComplete）
-        order = skillOrderMapper.selectById(orderId);
+        // 卖方确认，检查买方是否已确认（锁保护下，无需重读）
         if (order.getBuyerConfirm() != null && order.getBuyerConfirm() == 1) {
+            // 双方都已确认 → 直接完成
+            order.setSellerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
             doCompleteOrder(orderId);
         } else {
+            // 仅卖方确认 → 设置 WAIT_COMPLETE
             skillOrderMapper.update(null, new LambdaUpdateWrapper<SkillOrder>()
                     .eq(SkillOrder::getId, orderId)
+                    .set(SkillOrder::getSellerConfirm, 1)
                     .set(SkillOrder::getStatus, STATUS_WAIT_COMPLETE)
                     .set(SkillOrder::getUpdateTime, LocalDateTime.now()));
         }
+
+        log.info("卖方确认完成, orderId={}, userId={}", orderId, userId);
     }
 
     @Override
@@ -179,7 +189,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void doCompleteOrder(Long orderId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        SkillOrder order = skillOrderMapper.selectByIdForUpdate(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -192,20 +202,28 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("双方都确认完成后才能完成订单");
         }
 
-        User buyer = userMapper.selectById(order.getBuyerId());
+        User buyer = userMapper.selectByIdForUpdate(order.getBuyerId());
         if (buyer != null) {
             int frozen = (buyer.getFrozenBalance() == null ? 0 : buyer.getFrozenBalance()) - order.getAmount();
             buyer.setFrozenBalance(Math.max(frozen, 0));
             buyer.setUpdateTime(LocalDateTime.now());
             userMapper.updateById(buyer);
+
+            transactionRecorder.record(order.getBuyerId(), orderId, "EXPENSE",
+                    order.getAmount(), buyer.getBalance() == null ? 0 : buyer.getBalance(),
+                    "订单完成支出");
         }
 
-        User seller = userMapper.selectById(order.getSellerId());
+        User seller = userMapper.selectByIdForUpdate(order.getSellerId());
         if (seller != null) {
             int balance = (seller.getBalance() == null ? 0 : seller.getBalance()) + order.getAmount();
             seller.setBalance(balance);
             seller.setUpdateTime(LocalDateTime.now());
             userMapper.updateById(seller);
+
+            transactionRecorder.record(order.getSellerId(), orderId, "INCOME",
+                    order.getAmount(), balance,
+                    "订单完成收入");
         }
 
         order.setStatus(STATUS_COMPLETED);
@@ -220,20 +238,40 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void cancelOrder(Long orderId, Long userId) {
-        SkillOrder order = skillOrderMapper.selectById(orderId);
+        SkillOrder order = skillOrderMapper.selectByIdForUpdate(orderId);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
         if (!order.getBuyerId().equals(userId) && !order.getSellerId().equals(userId)) {
             throw new BusinessException("只有买卖双方可以取消订单");
         }
-        if (order.getStatus() != STATUS_PENDING) {
-            throw new BusinessException("仅在待确认状态可取消订单，当前状态：" + getStatusDesc(order.getStatus()));
-        }
 
-        order.setStatus(STATUS_CANCELLED);
-        order.setUpdateTime(LocalDateTime.now());
-        skillOrderMapper.updateById(order);
+        if (order.getStatus() == STATUS_PENDING) {
+            // 待确认状态：直接取消，无需退款
+            order.setStatus(STATUS_CANCELLED);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
+        } else if (order.getStatus() == STATUS_IN_PROGRESS) {
+            User buyer = userMapper.selectByIdForUpdate(order.getBuyerId());
+            if (buyer != null) {
+                int frozenAmount = order.getFrozenAmount();
+                int newBalance = (buyer.getBalance() == null ? 0 : buyer.getBalance()) + frozenAmount;
+                buyer.setBalance(newBalance);
+                buyer.setFrozenBalance(Math.max((buyer.getFrozenBalance() == null ? 0 : buyer.getFrozenBalance()) - frozenAmount, 0));
+                buyer.setUpdateTime(LocalDateTime.now());
+                userMapper.updateById(buyer);
+
+                transactionRecorder.record(order.getBuyerId(), orderId, "UNFREEZE",
+                        frozenAmount, newBalance,
+                        "订单取消解冻");
+            }
+            order.setStatus(STATUS_CANCELLED);
+            order.setFrozenAmount(0);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
+        } else {
+            throw new BusinessException("当前状态不可取消，当前状态：" + getStatusDesc(order.getStatus()));
+        }
 
         log.info("订单已取消, orderId={}, userId={}", orderId, userId);
     }

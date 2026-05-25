@@ -130,11 +130,8 @@ function handleLogout() {
                 <router-link to="/my-skills" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
                   <Icon icon="mdi:briefcase" />我的技能
                 </router-link>
-                <router-link to="/wallet" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
-                  <Icon icon="mdi:bank" />时间银行
-                </router-link>
                 <router-link to="/profile" class="ad-item" @click="avatarMenuOpen = false; closeMenu()">
-                  <Icon icon="mdi:account-circle" />个人信息
+                  <Icon icon="mdi:home-account" />个人主页
                 </router-link>
                 <div class="ad-divider"></div>
                 <a class="ad-item ad-logout" @click="handleLogout">
@@ -182,11 +179,8 @@ function handleLogout() {
               <router-link to="/my-skills" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:briefcase" />我的技能
               </router-link>
-              <router-link to="/wallet" class="drawer-item" active-class="nav-active" @click="closeMenu">
-                <Icon icon="mdi:bank" />时间银行
-              </router-link>
               <router-link to="/profile" class="drawer-item" active-class="nav-active" @click="closeMenu">
-                <Icon icon="mdi:account-circle" />个人信息
+                <Icon icon="mdi:home-account" />个人主页
               </router-link>
               <div class="drawer-divider"></div>
               <div class="drawer-footer-info">

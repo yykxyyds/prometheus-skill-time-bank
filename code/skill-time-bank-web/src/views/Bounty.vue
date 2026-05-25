@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { getBountyList, getCategories } from '../api/skill'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
@@ -45,6 +45,10 @@ function categoryCover(catName) {
 
 onMounted(async () => {
   await Promise.all([loadBounties(), loadCategories()])
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
 async function loadCategories() {

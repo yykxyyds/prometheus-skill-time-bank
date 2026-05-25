@@ -73,7 +73,7 @@ async function handleOrder() {
   }
   ordering.value = true
   try {
-    await api.post('/order', {
+    const res = await api.post('/order', {
       sellerId: skill.value.userId,
       skillId: skill.value.id,
       amount: skill.value.price * orderForm.value.hours,
@@ -83,7 +83,7 @@ async function handleOrder() {
       plan: orderForm.value.plan
     })
     ElMessage.success('下单成功！')
-    router.push('/wallet')
+    router.push('/order/' + res.data.id)
   } catch (e) { /* handled */ }
   finally { ordering.value = false }
 }

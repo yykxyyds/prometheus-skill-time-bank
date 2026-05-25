@@ -55,3 +55,7 @@ export function getFollowing(userId) {
 export function getReputation(userId) {
   return api.get(`/review/reputation/${userId}`)
 }
+
+export function getUserReviews(userId) {
+  return api.get(`/review/user/${userId}`)
+}

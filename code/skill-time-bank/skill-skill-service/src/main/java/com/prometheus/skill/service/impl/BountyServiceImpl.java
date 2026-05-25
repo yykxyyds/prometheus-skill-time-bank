@@ -95,9 +95,13 @@ public class BountyServiceImpl implements BountyService {
         applicationMapper.insert(application);
         log.info("用户 {} 申请了悬赏 {}", applicantId, bountyId);
 
-        // 通知悬赏发布者：有人申请了你的悬赏
-        notificationService.sendNotification(bounty.getUserId(), "BOUNTY",
-                "新的悬赏申请", "有人申请了你的悬赏「" + bounty.getTitle() + "」", bountyId);
+        // 通知悬赏发布者：有人申请了你的悬赏（失败不影响业务）
+        try {
+            notificationService.sendNotification(bounty.getUserId(), "BOUNTY",
+                    "新的悬赏申请", "有人申请了你的悬赏「" + bounty.getTitle() + "」", bountyId);
+        } catch (Exception e) {
+            log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -148,19 +152,27 @@ public class BountyServiceImpl implements BountyService {
                 .set(BountyApplication::getUpdateTime, LocalDateTime.now());
         applicationMapper.update(null, rejectWrapper);
 
-        // 通知被接受的申请人
-        notificationService.sendNotification(application.getApplicantId(), "BOUNTY",
-                "申请已通过", "你申请的悬赏「" + bounty.getTitle() + "」已被接受", bountyId);
+        // 通知被接受的申请人（失败不影响业务）
+        try {
+            notificationService.sendNotification(application.getApplicantId(), "BOUNTY",
+                    "申请已通过", "你申请的悬赏「" + bounty.getTitle() + "」已被接受", bountyId);
+        } catch (Exception e) {
+            log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+        }
 
-        // 通知其他被拒绝的申请人
+        // 通知其他被拒绝的申请人（失败不影响业务）
         List<BountyApplication> others = applicationMapper.selectList(
                 new LambdaQueryWrapper<BountyApplication>()
                         .eq(BountyApplication::getBountyId, bountyId)
                         .ne(BountyApplication::getId, applicationId)
                         .eq(BountyApplication::getStatus, 3));
         for (BountyApplication other : others) {
-            notificationService.sendNotification(other.getApplicantId(), "BOUNTY",
-                    "申请未通过", "你申请的悬赏「" + bounty.getTitle() + "」已有他人接单", bountyId);
+            try {
+                notificationService.sendNotification(other.getApplicantId(), "BOUNTY",
+                        "申请未通过", "你申请的悬赏「" + bounty.getTitle() + "」已有他人接单", bountyId);
+            } catch (Exception e) {
+                log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+            }
         }
 
         log.info("用户 {} 接受了悬赏 {} 的申请 {}", ownerId, bountyId, applicationId);
@@ -192,9 +204,13 @@ public class BountyServiceImpl implements BountyService {
         application.setUpdateTime(LocalDateTime.now());
         applicationMapper.updateById(application);
 
-        // 通知被拒绝的申请人
-        notificationService.sendNotification(application.getApplicantId(), "BOUNTY",
-                "申请未通过", "你申请的悬赏「" + bounty.getTitle() + "」已被拒绝", bountyId);
+        // 通知被拒绝的申请人（失败不影响业务）
+        try {
+            notificationService.sendNotification(application.getApplicantId(), "BOUNTY",
+                    "申请未通过", "你申请的悬赏「" + bounty.getTitle() + "」已被拒绝", bountyId);
+        } catch (Exception e) {
+            log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+        }
 
         log.info("用户 {} 拒绝了悬赏 {} 的申请 {}", ownerId, bountyId, applicationId);
     }
@@ -220,10 +236,14 @@ public class BountyServiceImpl implements BountyService {
         // 完成订单并转账
         completeBountyOrder(bounty);
 
-        // 通知接单人
+        // 通知接单人（失败不影响业务）
         if (bounty.getApplicantId() != null) {
-            notificationService.sendNotification(bounty.getApplicantId(), "BOUNTY",
-                    "悬赏已完成", "悬赏「" + bounty.getTitle() + "」已被发布者确认完成", bountyId);
+            try {
+                notificationService.sendNotification(bounty.getApplicantId(), "BOUNTY",
+                        "悬赏已完成", "悬赏「" + bounty.getTitle() + "」已被发布者确认完成", bountyId);
+            } catch (Exception e) {
+                log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+            }
         }
 
         log.info("悬赏 {} 已完成，时间币已转账", bountyId);
@@ -299,7 +319,7 @@ public class BountyServiceImpl implements BountyService {
      * 悬赏接单后创建订单并冻结买方时间币
      */
     private void createOrderForBounty(Bounty bounty, Long sellerId) {
-        User buyer = userMapper.selectById(bounty.getUserId());
+        User buyer = userMapper.selectByIdForUpdate(bounty.getUserId());
         if (buyer == null) {
             throw new BusinessException("悬赏发布者不存在");
         }
@@ -349,9 +369,8 @@ public class BountyServiceImpl implements BountyService {
      * 悬赏完成后转账并完成订单
      */
     private void completeBountyOrder(Bounty bounty) {
-        // 查找关联订单
-        SkillOrder order = skillOrderMapper.selectOne(
-                new LambdaQueryWrapper<SkillOrder>().eq(SkillOrder::getBountyId, bounty.getId()));
+        // 查找关联订单（FOR UPDATE 悲观锁）
+        SkillOrder order = skillOrderMapper.selectByBountyIdForUpdate(bounty.getId());
         if (order == null) {
             log.warn("悬赏 {} 未找到关联订单，跳过转账", bounty.getId());
             return;
@@ -364,7 +383,7 @@ public class BountyServiceImpl implements BountyService {
         LocalDateTime now = LocalDateTime.now();
 
         // 解冻买方时间币
-        User buyer = userMapper.selectById(order.getBuyerId());
+        User buyer = userMapper.selectByIdForUpdate(order.getBuyerId());
         if (buyer != null) {
             int frozen = (buyer.getFrozenBalance() == null ? 0 : buyer.getFrozenBalance()) - order.getAmount();
             buyer.setFrozenBalance(Math.max(frozen, 0));
@@ -384,7 +403,7 @@ public class BountyServiceImpl implements BountyService {
         }
 
         // 卖方到账
-        User seller = userMapper.selectById(order.getSellerId());
+        User seller = userMapper.selectByIdForUpdate(order.getSellerId());
         if (seller != null) {
             int sellerBalance = (seller.getBalance() == null ? 0 : seller.getBalance()) + order.getAmount();
             seller.setBalance(sellerBalance);

@@ -59,9 +59,7 @@ const routes = [
   },
   {
     path: '/wallet',
-    name: 'Wallet',
-    meta: { requiresAuth: true },
-    component: () => import('../views/user/Wallet.vue')
+    redirect: '/profile'
   },
   {
     path: '/profile',

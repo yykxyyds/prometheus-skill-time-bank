@@ -133,9 +133,6 @@ const statCards = computed(() => [
         <h2>时间银行</h2>
         <p>管理你的时间资产与信誉档案</p>
       </div>
-      <router-link to="/appeal/create" class="appeal-link">
-        <Icon icon="mdi:alert-circle" /> 提交申诉
-      </router-link>
     </div>
 
     <!-- 资产卡片 -->
@@ -234,23 +231,6 @@ const statCards = computed(() => [
   font-size: 14px;
   color: #999;
   margin: 0;
-}
-.appeal-link {
-  padding: 8px 18px;
-  border: 1px solid #fde2e2;
-  border-radius: 8px;
-  color: #f56c6c;
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.appeal-link:hover {
-  background: #fef0f0;
 }
 
 /* ========== 资产卡片 ========== */

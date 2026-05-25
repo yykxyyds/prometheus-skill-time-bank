@@ -72,7 +72,7 @@ async function submit() {
       <div class="form-container">
         <div class="form-header">
           <h2>{{ isLogin ? '欢迎回来' : '创建账号' }}</h2>
-          <p>{{ isLogin ? '登录你的账号，继续技能交换之旅' : '注册即赠 20 时间币，开始你的第一次交换' }}</p>
+          <p>{{ isLogin ? '登录你的账号，继续技能交换之旅' : '注册即赠 100 时间币，开始你的第一次交换' }}</p>
         </div>
 
         <form class="login-form" @submit.prevent="submit">

@@ -14,4 +14,7 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Select("SELECT COUNT(1) FROM skill WHERE user_id = #{userId} AND status = 1")
     Long countPublishedSkills(@Param("userId") Long userId);
+
+    @Select("SELECT * FROM user WHERE id = #{id} FOR UPDATE")
+    com.prometheus.user.entity.User selectByIdForUpdate(@Param("id") Long id);
 }

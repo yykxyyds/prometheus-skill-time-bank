@@ -62,7 +62,12 @@ async function handleDelete(id) {
         <h2>公告管理</h2>
         <p>发布和管理平台公告</p>
       </div>
-      <button class="publish-btn" @click="openCreate">发布公告</button>
+      <button class="publish-btn" @click="openCreate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        发布公告
+      </button>
     </div>
 
     <div class="announce-list" v-loading="loading">
@@ -74,7 +79,7 @@ async function handleDelete(id) {
             {{ item.title }}
           </h3>
           <p class="announce-content">{{ item.content }}</p>
-          <span class="announce-time">{{ item.createTime }}</span>
+          <span class="announce-time">{{ item.createTime?.replace('T', ' ') }}</span>
         </div>
         <div class="announce-actions">
           <button class="action-btn edit" @click="openEdit(item)">编辑</button>
@@ -106,24 +111,37 @@ async function handleDelete(id) {
 </template>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.page-header h2 { font-size: 24px; font-weight: 700; color: #2c3e50; margin: 0 0 4px; }
-.page-header p { font-size: 14px; color: #999; margin: 0; }
-.publish-btn { padding: 10px 22px; background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.page-header h2 { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.page-header p { font-size: 14px; color: #94a3b8; margin: 0; }
+.publish-btn {
+  padding: 10px 22px; background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff; border: none; border-radius: 10px; font-size: 14px;
+  font-weight: 600; cursor: pointer; transition: all 0.3s;
+  display: flex; align-items: center; gap: 6px;
+}
 .publish-btn:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3); transform: translateY(-1px); }
+.btn-icon { width: 16px; height: 16px; }
+
 .announce-list { display: flex; flex-direction: column; gap: 12px; }
-.announce-card { background: #fff; border-radius: 14px; padding: 22px 24px; border: 1px solid #f0e8e0; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.announce-card {
+  background: #fff; border-radius: 14px; padding: 22px 24px;
+  border: 1px solid #eef2f6; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  transition: all 0.25s;
+}
+.announce-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .announce-left { flex: 1; min-width: 0; }
-.announce-left h3 { font-size: 16px; font-weight: 600; color: #2c3e50; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
-.top-badge { font-size: 11px; background: #6366f1; color: #fff; padding: 1px 8px; border-radius: 4px; font-weight: 600; }
-.announce-content { font-size: 14px; color: #888; line-height: 1.6; margin: 0 0 8px; }
-.announce-time { font-size: 12px; color: #bbb; }
+.announce-left h3 { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.top-badge { font-size: 11px; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.announce-content { font-size: 14px; color: #64748b; line-height: 1.6; margin: 0 0 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.announce-time { font-size: 12px; color: #94a3b8; }
 .announce-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.action-btn { padding: 5px 14px; border: 1px solid; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; background: #fff; font-weight: 500; }
+.action-btn { padding: 5px 14px; border: 1px solid; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; background: #fff; font-weight: 500; }
 .action-btn.edit { color: #409eff; border-color: #d9ecff; }
-.action-btn.edit:hover { background: #ecf5ff; }
+.action-btn.edit:hover { background: #ecf5ff; border-color: #409eff; }
 .action-btn.danger { color: #f56c6c; border-color: #fde2e2; }
-.action-btn.danger:hover { background: #fef0f0; }
+.action-btn.danger:hover { background: #fef0f0; border-color: #f56c6c; }
 .dialog-form { display: flex; flex-direction: column; gap: 16px; }
 .form-row label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
 </style>

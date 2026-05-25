@@ -19,7 +19,7 @@ export const useUserStore = defineStore('user', () => {
         api.get('/chat/private/unread'),
         api.get('/notification/unread-count')
       ])
-      unreadCount.value = (msgRes.data || 0) + (notifRes.data || 0)
+      unreadCount.value = (msgRes.data || 0)
     } catch { /* silent */ }
   }
 
@@ -42,7 +42,11 @@ function setUser(data) {
     username.value = ''
     role.value = ''
     balance.value = 0
-    localStorage.clear()
+    localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('username')
+    localStorage.removeItem('role')
+    localStorage.removeItem('balance')
   }
 
   return { token, userId, username, role, balance, unreadCount, isLoggedIn, setUser, logout, refreshUnread }

@@ -19,6 +19,7 @@ const chatBox = ref(null)
 
 // 评价表单
 const showReview = ref(false)
+const submittedReview = ref(null)
 const reviewForm = ref({
   score: 5,
   comment: '',
@@ -125,6 +126,7 @@ async function submitReview() {
       professionalScore: form.professionalScore,
       attitudeScore: form.attitudeScore
     })
+    submittedReview.value = { ...form }
     ElMessage.success('评价提交成功')
     showReview.value = false
   } catch (e) { /* handled */ }
@@ -203,6 +205,7 @@ function formatTime(t) {
                 <span class="user-cell" @click="router.push(`/profile/${order.buyerId}`)">
                   <img v-if="order.buyerAvatar" :src="order.buyerAvatar" class="mini-avatar" />
                   <span class="link">{{ order.buyerName || '#' + order.buyerId }}</span>
+                  <Icon icon="mdi:message-text-outline" class="msg-icon-btn" @click.stop="router.push(`/messages?userId=${order.buyerId}`)" />
                 </span>
               </div>
               <div class="info-item">
@@ -210,6 +213,7 @@ function formatTime(t) {
                 <span class="user-cell" @click="router.push(`/profile/${order.sellerId}`)">
                   <img v-if="order.sellerAvatar" :src="order.sellerAvatar" class="mini-avatar" />
                   <span class="link">{{ order.sellerName || '#' + order.sellerId }}</span>
+                  <Icon icon="mdi:message-text-outline" class="msg-icon-btn" @click.stop="router.push(`/messages?userId=${order.sellerId}`)" />
                 </span>
               </div>
               <div class="info-item" v-if="order.skillId || order.bountyId">
@@ -296,12 +300,15 @@ function formatTime(t) {
                 </button>
                 <span v-if="isBuyer && order.buyerConfirm" class="hint">已确认，等待对方</span>
                 <span v-if="isSeller && order.sellerConfirm" class="hint">已确认，等待对方</span>
+                <button class="btn-appeal" @click="router.push('/appeal/create?orderId=' + route.params.id)">
+                  <Icon icon="mdi:alert-circle-outline" /> 申诉
+                </button>
               </template>
             </div>
 
             <!-- 已完成：评价按钮 -->
             <div class="actions" v-if="order.status === 4">
-              <button class="btn-primary" @click="showReview = !showReview">
+              <button v-if="!submittedReview" class="btn-primary" @click="showReview = !showReview">
                 <Icon icon="mdi:star" /> {{ showReview ? '收起评价' : '写评价' }}
               </button>
               <router-link to="/orders/buyer" class="btn-link">返回订单列表</router-link>
@@ -309,7 +316,7 @@ function formatTime(t) {
           </div>
 
           <!-- 评价表单 -->
-          <div class="card review-card" v-if="showReview">
+          <div class="card review-card" v-if="showReview && !submittedReview">
             <h3>交易评价</h3>
             <div class="review-form">
               <div class="form-row">
@@ -342,6 +349,37 @@ function formatTime(t) {
                 </div>
               </div>
               <button class="btn-primary" @click="submitReview">提交评价</button>
+            </div>
+          </div>
+
+          <!-- 已提交的评价 -->
+          <div class="card review-card" v-if="submittedReview">
+            <h3>
+              <Icon icon="mdi:star-circle" style="color:#e8784a;vertical-align:middle;margin-right:4px;" />
+              我的评价
+            </h3>
+            <div class="submitted-review">
+              <div class="sr-row">
+                <span class="sr-label">综合评分</span>
+                <el-rate v-model="submittedReview.score" disabled :max="5" />
+              </div>
+              <div v-if="submittedReview.comment" class="sr-row">
+                <span class="sr-label">评价内容</span>
+                <p class="sr-text">{{ submittedReview.comment }}</p>
+              </div>
+              <div class="sr-row">
+                <span class="sr-label">四维评分</span>
+                <div class="sr-dims">
+                  <span class="sr-dim">按时 <i>{{ submittedReview.punctualityScore }}</i></span>
+                  <span class="sr-dim">沟通 <i>{{ submittedReview.communicationScore }}</i></span>
+                  <span class="sr-dim">专业 <i>{{ submittedReview.professionalScore }}</i></span>
+                  <span class="sr-dim">态度 <i>{{ submittedReview.attitudeScore }}</i></span>
+                </div>
+              </div>
+              <p class="sr-hint">
+                <Icon icon="mdi:information-outline" />
+                对方评价将在双方互评后或7天后自动展示
+              </p>
             </div>
           </div>
 
@@ -532,7 +570,7 @@ function formatTime(t) {
 .info-full { grid-column: 1 / -1; }
 .link:hover { text-decoration: underline; }
 .user-cell {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
@@ -543,6 +581,15 @@ function formatTime(t) {
   border-radius: 50%;
   object-fit: cover;
 }
+.msg-icon-btn {
+  font-size: 16px;
+  color: #e8784a;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  vertical-align: middle;
+}
+.msg-icon-btn:hover { opacity: 1; }
 
 /* Actions */
 .actions {
@@ -580,6 +627,20 @@ function formatTime(t) {
   cursor: pointer;
 }
 .btn-cancel:hover { background: #ebe5de; }
+.btn-appeal {
+  padding: 8px 20px;
+  background: #fff;
+  color: #e6a23c;
+  border: 1px solid #f5dab0;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.btn-appeal:hover { background: #fdf6ec; }
 .btn-link {
   font-size: 14px;
   color: #888;
@@ -688,6 +749,57 @@ function formatTime(t) {
   justify-content: space-between;
   font-size: 13px;
   color: #666;
+}
+
+/* Submitted Review */
+.submitted-review {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sr-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sr-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  width: 72px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.sr-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+}
+.sr-dims {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sr-dim {
+  font-size: 13px;
+  color: #666;
+  background: #fdf9f6;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+.sr-dim i {
+  font-style: normal;
+  font-weight: 700;
+  color: #e8784a;
+}
+.sr-hint {
+  font-size: 12px;
+  color: #bbb;
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Side */

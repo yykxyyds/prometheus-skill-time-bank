@@ -63,7 +63,7 @@ async function toggleStatus(user) {
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
+        <el-table-column label="操作" width="110" align="center">
           <template #default="{ row }">
             <button v-if="row.role !== 'ADMIN'"
               :class="['action-btn', row.status === 1 ? 'danger' : 'success']"
@@ -79,11 +79,6 @@ async function toggleStatus(user) {
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 20px; }
-.page-header h2 { font-size: 24px; font-weight: 700; color: #2c3e50; margin: 0 0 4px; }
-.page-header p { font-size: 14px; color: #999; margin: 0; }
-.table-panel { background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid #f0e8e0; }
-.text-muted { color: #bbb; }
 .coin-val { font-weight: 700; color: #e8784a; }
 .role-tag { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 4px; }
 .role-tag.admin { background: #fef0f0; color: #f56c6c; }
@@ -91,9 +86,9 @@ async function toggleStatus(user) {
 .row-status { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 4px; }
 .row-status.on { background: #e8f5e9; color: #4caf50; }
 .row-status.off { background: #fef0f0; color: #f56c6c; }
-.action-btn { padding: 4px 14px; border: 1px solid; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; background: #fff; font-weight: 500; }
+.action-btn { padding: 5px 16px; border: 1px solid; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; background: #fff; font-weight: 500; }
 .action-btn.danger { color: #f56c6c; border-color: #fde2e2; }
-.action-btn.danger:hover { background: #fef0f0; }
+.action-btn.danger:hover { background: #fef0f0; border-color: #f56c6c; }
 .action-btn.success { color: #67c23a; border-color: #e1f3d8; }
-.action-btn.success:hover { background: #f0f9eb; }
+.action-btn.success:hover { background: #f0f9eb; border-color: #67c23a; }
 </style>

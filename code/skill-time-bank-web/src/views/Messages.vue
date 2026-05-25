@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getConversations, getPrivateMessages, sendMessage, markAsRead } from '../api/message'
@@ -20,6 +20,8 @@ const loading = ref(false)
 const sending = ref(false)
 const listRef = ref(null)
 const showNotifications = ref(true)
+const sidebarVisible = ref(true)
+let pollTimer = null
 
 async function loadNotifications() {
   try {
@@ -57,12 +59,18 @@ onMounted(async () => {
       openConversation(conv)
     } else {
       const friendNames = localStorage.getItem('friendNames')
-      const names = friendNames ? JSON.parse(friendNames) : {}
+      let names = {}
+      try { names = friendNames ? JSON.parse(friendNames) : {} } catch { names = {} }
       activeConv.value = { otherUserId: qUserId, otherUsername: names[qUserId] || '用户' }
       messages.value = []
       await loadMessages(activeConv.value.otherUserId)
     }
   }
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 
 watch(() => route.query.userId, async (val) => {
@@ -111,6 +119,8 @@ async function openConversation(conv) {
   } finally {
     loading.value = false
   }
+  restartPolling()
+  if (window.innerWidth < 768) sidebarVisible.value = false
 }
 
 async function handleSend() {
@@ -126,6 +136,7 @@ async function handleSend() {
     loadConversations()
   } catch { /* handled */ }
   finally { sending.value = false }
+  restartPolling()
 }
 
 function scrollToBottom() {
@@ -143,6 +154,40 @@ function formatTime(t) {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
+function startPolling() {
+  stopPolling()
+  const interval = activeConv.value ? 5000 : 10000
+  pollTimer = setInterval(async () => {
+    if (activeConv.value) {
+      try {
+        const res = await getPrivateMessages(activeConv.value.otherUserId)
+        const newMsgs = res.data || []
+        if (newMsgs.length > messages.value.length) {
+          const added = newMsgs.slice(messages.value.length)
+          messages.value.push(...added)
+          await nextTick()
+          scrollToBottom()
+          activeConv.value.unreadCount = 0
+          markAsRead(activeConv.value.otherUserId).then(() => userStore.refreshUnread()).catch(() => {})
+        }
+      } catch { /* silent */ }
+    } else {
+      loadConversations()
+    }
+  }, interval)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function restartPolling() {
+  startPolling()
+}
+
 function goProfile(uid) {
   router.push(`/profile/${uid}`)
 }
@@ -152,7 +197,7 @@ function goProfile(uid) {
   <div class="messages-page">
     <div class="msg-container" v-if="conversations.length > 0 || activeConv">
       <!-- 左侧对话列表 -->
-      <div class="conv-sidebar" :class="{ hidden: activeConv && $route.query.userId }">
+      <div class="conv-sidebar" :class="{ hidden: !sidebarVisible }">
         <div class="conv-header">
           <h3>消息</h3>
         </div>
@@ -202,7 +247,7 @@ function goProfile(uid) {
             </div>
             <div class="conv-info">
               <div class="conv-top">
-                <span class="conv-name">{{ conv.otherUsername || '用户' }}</span>
+                <span class="conv-name" @click.stop="goProfile(conv.otherUserId)">{{ conv.otherUsername || '用户' }}</span>
                 <span class="conv-time">{{ formatTime(conv.lastTime) }}</span>
               </div>
               <div class="conv-bottom">
@@ -222,7 +267,7 @@ function goProfile(uid) {
       <div class="chat-area" :class="{ empty: !activeConv }">
         <template v-if="activeConv">
           <div class="chat-top">
-            <button class="back-btn" @click="router.push('/messages')"><Icon icon="mdi:arrow-left" /></button>
+            <button class="back-btn" @click="sidebarVisible = true"><Icon icon="mdi:arrow-left" /></button>
             <span class="chat-partner" @click="goProfile(activeConv.otherUserId)">{{ activeConv.otherUsername || '用户' }}</span>
           </div>
           <div ref="listRef" class="chat-body" v-loading="loading">
@@ -629,15 +674,46 @@ function goProfile(uid) {
 }
 .notif-collapsed:hover { background: rgba(232,120,74,0.04); }
 
+@media (max-width: 900px) {
+  .conv-sidebar { width: 280px; }
+}
+
 @media (max-width: 768px) {
+  .messages-page { height: calc(100vh - 100px); }
+
   .conv-sidebar {
     width: 100%;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: #fff;
+    transition: transform 0.25s ease;
   }
   .conv-sidebar.hidden {
-    display: none;
+    display: flex;
+    transform: translateX(-100%);
+    pointer-events: none;
   }
-  .back-btn {
-    display: block;
-  }
+
+  .msg-container { position: relative; overflow: hidden; }
+
+  .back-btn { display: block; }
+  .chat-area { width: 100%; }
+
+  .notif-section { max-height: 180px; }
+  .notif-list { max-height: 130px; }
+}
+
+@media (max-width: 480px) {
+  .conv-sidebar { width: 100%; }
+  .conv-avatar { width: 36px; height: 36px; }
+  .conv-avatar-text { font-size: 15px; }
+  .conv-header { padding: 14px 16px 12px; }
+  .conv-item { padding: 12px 16px; }
+  .chat-top { padding: 12px 16px; }
+  .chat-body { padding: 14px; }
+  .chat-input-area { padding: 12px 16px; }
+  .msg-bubble { max-width: 85%; padding: 8px 14px; }
+  .send-btn { padding: 10px 18px; font-size: 13px; }
 }
 </style>
