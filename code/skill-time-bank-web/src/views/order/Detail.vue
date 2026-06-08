@@ -300,6 +300,9 @@ function formatTime(t) {
                 </button>
                 <span v-if="isBuyer && order.buyerConfirm" class="hint">已确认，等待对方</span>
                 <span v-if="isSeller && order.sellerConfirm" class="hint">已确认，等待对方</span>
+                <button v-if="order.status === 2" class="btn-cancel-order" @click="handleAction('cancel')">
+                  <Icon icon="mdi:cancel" /> 取消订单
+                </button>
                 <button class="btn-appeal" @click="router.push('/appeal/create?orderId=' + route.params.id)">
                   <Icon icon="mdi:alert-circle-outline" /> 申诉
                 </button>
@@ -627,6 +630,20 @@ function formatTime(t) {
   cursor: pointer;
 }
 .btn-cancel:hover { background: #ebe5de; }
+.btn-cancel-order {
+  padding: 8px 20px;
+  background: #fff;
+  color: #909399;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.btn-cancel-order:hover { background: #f5f5f5; border-color: #c0c0c0; }
 .btn-appeal {
   padding: 8px 20px;
   background: #fff;

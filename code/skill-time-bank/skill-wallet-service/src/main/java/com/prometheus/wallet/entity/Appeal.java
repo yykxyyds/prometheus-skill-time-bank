@@ -39,4 +39,8 @@ public class Appeal extends BaseEntity {
     /** 申诉人用户名，非数据库字段 */
     @TableField(exist = false)
     private String appellantName;
+
+    /** 关联悬赏标题（bounty 订单时填充），非数据库字段 */
+    @TableField(exist = false)
+    private String bountyTitle;
 }

@@ -9,17 +9,19 @@ export const useUserStore = defineStore('user', () => {
   const role = ref(localStorage.getItem('role') || '')
   const balance = ref(Number(localStorage.getItem('balance') || '0'))
   const unreadCount = ref(0)
+  const notifUnreadCount = ref(0)
 
   const isLoggedIn = computed(() => !!token.value)
 
   async function refreshUnread() {
-    if (!token.value) { unreadCount.value = 0; return }
+    if (!token.value) { unreadCount.value = 0; notifUnreadCount.value = 0; return }
     try {
       const [msgRes, notifRes] = await Promise.all([
         api.get('/chat/private/unread'),
         api.get('/notification/unread-count')
       ])
       unreadCount.value = (msgRes.data || 0)
+      notifUnreadCount.value = (notifRes.data || 0)
     } catch { /* silent */ }
   }
 
@@ -49,5 +51,5 @@ function setUser(data) {
     localStorage.removeItem('balance')
   }
 
-  return { token, userId, username, role, balance, unreadCount, isLoggedIn, setUser, logout, refreshUnread }
+  return { token, userId, username, role, balance, unreadCount, notifUnreadCount, isLoggedIn, setUser, logout, refreshUnread }
 })

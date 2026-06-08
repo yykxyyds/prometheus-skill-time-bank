@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onActivated, computed } from 'vue'
+import { ref, onMounted, onActivated, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getSkillList, getCategories } from '../api/skill'
@@ -19,10 +19,12 @@ const heroStats = ref({ skillCount: 0, userCount: 0, orderCount: 0 })
 const announcements = ref([])
 const showAnnouncePopup = ref(false)
 
-const CARDS_PER_ROW = 5
 const totalPages = computed(() => Math.ceil(total.value / query.value.size) || 1)
 
-// 把技能按行分组，每行 CARDS_PER_ROW 个 → 20/5 = 4 行
+// 是否处于搜索状态（有关键词或选中分类）
+const isSearching = computed(() => !!query.value.keyword || !!query.value.categoryId)
+
+const CARDS_PER_ROW = 5
 const skillRows = computed(() => {
   const rows = []
   for (let i = 0; i < skills.value.length; i += CARDS_PER_ROW) {
@@ -86,6 +88,13 @@ async function search() {
   currentPage.value = 1
   await loadData()
 }
+
+// 输入关键词自动搜索（防抖 300ms）
+let searchTimer = null
+watch(() => query.value.keyword, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => search(), 300)
+})
 
 onMounted(async () => {
   await loadData()
@@ -196,7 +205,6 @@ function getSkillEmoji(title) {
             type="text"
             placeholder="搜索你需要的技能..."
             class="search-input"
-            @keyup.enter="search"
           />
         </div>
         <el-select
@@ -214,7 +222,6 @@ function getSkillEmoji(title) {
             :value="c.id"
           />
         </el-select>
-        <button class="search-btn" @click="search">搜索</button>
       </div>
     </section>
 
@@ -236,7 +243,8 @@ function getSkillEmoji(title) {
         :image-size="120"
       />
 
-      <div v-else class="scroll-rows">
+      <!-- 默认：滚动行 -->
+      <div v-else-if="!isSearching" class="scroll-rows">
         <div
           v-for="(row, rowIdx) in skillRows"
           :key="rowIdx"
@@ -249,7 +257,6 @@ function getSkillEmoji(title) {
             :class="rowIdx % 2 === 0 ? 'scroll-left' : 'scroll-right'"
             :style="{ animationDuration: row.length * 5 + 's' }"
           >
-            <!-- 原始卡片 -->
             <article
               v-for="skill in row"
               :key="skill.id"
@@ -281,7 +288,6 @@ function getSkillEmoji(title) {
                 </div>
               </div>
             </article>
-            <!-- 复制一份实现无缝循环 -->
             <article
               v-for="skill in row"
               :key="'dup-' + skill.id"
@@ -315,6 +321,41 @@ function getSkillEmoji(title) {
             </article>
           </div>
         </div>
+      </div>
+
+      <!-- 搜索状态：静态网格，无滚动 -->
+      <div v-else class="skill-grid">
+        <article
+          v-for="skill in skills"
+          :key="skill.id"
+          class="skill-card"
+          @click="$router.push(`/skill/${skill.id}`)"
+        >
+          <div
+            class="card-cover"
+            :style="skill.coverImage
+              ? { backgroundImage: `url(${skill.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: `linear-gradient(135deg, ${categoryCover(skill.categoryName).color}18, ${categoryCover(skill.categoryName).color}30)` }"
+          >
+            <template v-if="!skill.coverImage">
+              <span class="cover-emoji">{{ getSkillEmoji(skill.title) || categoryCover(skill.categoryName).emoji }}</span>
+              <span class="cover-category">{{ skill.categoryName || '技能' }}</span>
+            </template>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">{{ skill.title }}</h3>
+            <p class="card-desc">
+              {{ skill.description?.substring(0, 60) }}{{ skill.description?.length > 60 ? '...' : '' }}
+            </p>
+            <div class="card-footer">
+              <span class="card-price">
+                <Icon icon="mdi:star" class="price-icon" />
+                {{ skill.price }} 币/时
+              </span>
+              <span class="card-user">{{ skill.userName || '匿名' }}</span>
+            </div>
+          </div>
+        </article>
       </div>
 
       <!-- 分页 -->
@@ -529,22 +570,6 @@ function getSkillEmoji(title) {
 .category-select {
   width: 160px;
 }
-.search-btn {
-  padding: 10px 28px;
-  background: linear-gradient(135deg, #e8784a, #f0a060);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  letter-spacing: 0.5px;
-}
-.search-btn:hover {
-  box-shadow: 0 4px 16px rgba(232, 120, 74, 0.35);
-  transform: translateY(-1px);
-}
 
 /* ========== 技能区域 ========== */
 .section-header {
@@ -594,7 +619,6 @@ function getSkillEmoji(title) {
   position: relative;
   overflow: hidden;
 }
-/* 左右渐变遮罩 */
 .scroll-fade {
   position: absolute;
   top: 0;
@@ -611,8 +635,6 @@ function getSkillEmoji(title) {
   right: 0;
   background: linear-gradient(to left, #faf8f5 0%, transparent 100%);
 }
-
-/* 滚动轨道 */
 .scroll-track {
   display: flex;
   gap: 20px;
@@ -621,7 +643,6 @@ function getSkillEmoji(title) {
 .scroll-track:hover {
   animation-play-state: paused;
 }
-
 @keyframes scrollLeft {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -630,12 +651,22 @@ function getSkillEmoji(title) {
   0%   { transform: translateX(-50%); }
   100% { transform: translateX(0); }
 }
-
 .scroll-left {
   animation: scrollLeft 30s linear infinite;
 }
 .scroll-right {
   animation: scrollRight 30s linear infinite;
+}
+
+/* ========== 搜索状态网格 ========== */
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+.skill-grid .skill-card {
+  width: auto;
+  flex-shrink: 1;
 }
 
 /* 卡片 */

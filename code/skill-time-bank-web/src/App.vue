@@ -13,6 +13,9 @@ const userAvatar = ref('')
 const announcements = ref([])
 const showAnnouncePanel = ref(false)
 const loadingAnnounce = ref(false)
+const notifications = ref([])
+const showNotifPanel = ref(false)
+const loadingNotif = ref(false)
 let unreadTimer = null
 
 onMounted(() => {
@@ -52,6 +55,45 @@ async function loadAnnouncements() {
   } catch (e) { /* silent */ } finally {
     loadingAnnounce.value = false
   }
+}
+
+async function loadNotifications() {
+  loadingNotif.value = true
+  try {
+    const res = await api.get('/notification/list')
+    notifications.value = Array.isArray(res.data) ? res.data : []
+    showNotifPanel.value = true
+  } catch (e) { /* silent */ } finally {
+    loadingNotif.value = false
+  }
+}
+
+function notifRoute(type, targetId) {
+  if (!targetId) return null
+  if (type === 'BOUNTY') return `/bounty/${targetId}`
+  if (type === 'SKILL')  return `/skill/${targetId}`
+  if (type === 'ORDER')  return `/order/${targetId}`
+  return null
+}
+
+async function handleNotifClick(notif) {
+  // 标记已读
+  if (notif.isRead === 0) {
+    try { await api.put(`/notification/${notif.id}/read`) } catch { /* silent */ }
+  }
+  showNotifPanel.value = false
+  userStore.refreshUnread()
+  // 跳转
+  const path = notifRoute(notif.type, notif.targetId)
+  if (path) router.push(path)
+}
+
+async function markAllNotifRead() {
+  const unread = notifications.value.filter(n => n.isRead === 0)
+  if (unread.length === 0) return
+  await Promise.allSettled(unread.map(n => api.put(`/notification/${n.id}/read`)))
+  notifications.value.forEach(n => { n.isRead = 1 })
+  userStore.refreshUnread()
 }
 
 function formatTime(t) {
@@ -103,6 +145,10 @@ function handleLogout() {
         <!-- 右侧：消息 + 时间币 + 头像 -->
         <div class="header-right">
           <template v-if="userStore.isLoggedIn">
+            <a class="icon-btn" title="通知" @click="loadNotifications">
+              <Icon icon="mdi:bell" class="icon-btn-icon" />
+              <span v-if="userStore.notifUnreadCount > 0" class="icon-btn-badge">{{ userStore.notifUnreadCount > 99 ? '99+' : userStore.notifUnreadCount }}</span>
+            </a>
             <router-link to="/messages" class="icon-btn" title="消息">
               <Icon icon="mdi:message-text" class="icon-btn-icon" />
               <span v-if="userStore.unreadCount > 0" class="icon-btn-badge">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</span>
@@ -166,6 +212,10 @@ function handleLogout() {
 
             <template v-if="userStore.isLoggedIn">
               <div class="drawer-divider"></div>
+              <a class="drawer-item" style="cursor:pointer" @click="loadNotifications(); closeMenu()">
+                <Icon icon="mdi:bell" />通知
+                <span v-if="userStore.notifUnreadCount > 0" class="nav-badge">{{ userStore.notifUnreadCount > 99 ? '99+' : userStore.notifUnreadCount }}</span>
+              </a>
               <router-link to="/messages" class="drawer-item" active-class="nav-active" @click="closeMenu">
                 <Icon icon="mdi:message-text" />消息
                 <span v-if="userStore.unreadCount > 0" class="nav-badge">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</span>
@@ -234,6 +284,28 @@ function handleLogout() {
         </div>
       </div>
     </footer>
+
+    <!-- 通知弹窗 -->
+    <el-dialog v-model="showNotifPanel" title="通知" width="600px" top="8vh" destroy-on-close>
+      <div v-loading="loadingNotif" class="announce-panel-list">
+        <el-empty v-if="!loadingNotif && notifications.length === 0" description="暂无通知" :image-size="60" />
+        <article v-for="item in notifications" :key="item.id"
+          class="panel-announce-item notif-item"
+          :class="{ 'notif-unread': item.isRead === 0 }"
+          @click="handleNotifClick(item)">
+          <h3 class="panel-announce-title">
+            <span v-if="item.isRead === 0" class="notif-dot" />
+            {{ item.title }}
+          </h3>
+          <p class="panel-announce-content">{{ item.content }}</p>
+          <span class="panel-announce-time">{{ formatTime(item.createTime) }}</span>
+        </article>
+      </div>
+      <template #footer>
+        <el-button v-if="notifications.some(n => n.isRead === 0)" @click="markAllNotifRead">全部已读</el-button>
+        <el-button type="primary" @click="showNotifPanel = false">关闭</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 公告弹窗 -->
     <el-dialog v-model="showAnnouncePanel" title="📢 平台公告" width="560px" top="8vh" destroy-on-close>
@@ -819,6 +891,7 @@ a.footer-link:hover {
   gap: 16px;
   max-height: 60vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .panel-announce-item {
   border-bottom: 1px solid #f0e8e0;
@@ -855,5 +928,32 @@ a.footer-link:hover {
 .panel-announce-time {
   font-size: 12px;
   color: #bbb;
+}
+
+/* ========== 通知弹窗 ========== */
+.notif-item {
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 12px;
+  margin: 0 -12px;
+  border-radius: 8px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.notif-item:hover {
+  background: #faf5f0;
+}
+.notif-unread {
+  background: #fff8f4;
+  border-left: 3px solid #e8784a;
+  margin-left: -15px;
+  padding-left: 9px;
+}
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  background: #f56c6c;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 </style>

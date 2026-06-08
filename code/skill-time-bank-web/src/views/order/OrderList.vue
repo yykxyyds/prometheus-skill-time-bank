@@ -156,6 +156,7 @@ async function handleAction(order, action) {
               <button v-if="!isBuyer && !order.sellerConfirm" class="btn-primary" @click.stop="handleAction(order, 'seller-complete')">确认完成</button>
               <span v-if="isBuyer && order.buyerConfirm" class="confirmed-hint">已确认，等待对方</span>
               <span v-if="!isBuyer && order.sellerConfirm" class="confirmed-hint">已确认，等待对方</span>
+              <button class="btn-cancel" @click.stop="handleAction(order, 'cancel')">取消订单</button>
             </template>
 
             <!-- 待确认完成 → 未确认方确认 -->

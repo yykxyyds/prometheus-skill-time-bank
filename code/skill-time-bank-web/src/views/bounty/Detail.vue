@@ -18,6 +18,10 @@ const applyMsg = ref('')
 const isFollowed = ref(false)
 const followLoading = ref(false)
 
+// 订单相关（进行中的悬赏）
+const order = ref(null)
+const orderLoading = ref(false)
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -26,10 +30,26 @@ onMounted(async () => {
     if (userStore.isLoggedIn && bounty.value.userId && bounty.value.userId !== userStore.userId) {
       checkFollowStatus()
     }
+    // 悬赏进行中时加载订单信息
+    if (bounty.value.status === 2) {
+      await loadOrder()
+    }
   } finally {
     loading.value = false
   }
 })
+
+async function loadOrder() {
+  orderLoading.value = true
+  try {
+    const res = await api.get(`/bounty/${bounty.value.id}/order`)
+    order.value = res.data || null
+  } catch {
+    order.value = null
+  } finally {
+    orderLoading.value = false
+  }
+}
 
 async function checkFollowStatus() {
   try {
@@ -61,14 +81,24 @@ async function toggleFollow() {
 const statusMap = {
   0: { label: '待审核', color: '#e8784a', bg: '#fef0e6' },
   1: { label: '已发布', color: '#e6a23c', bg: '#fdf6ec' },
-  2: { label: '已接单', color: '#409eff', bg: '#ecf5ff' },
+  2: { label: '进行中', color: '#409eff', bg: '#ecf5ff' },
   3: { label: '已完成', color: '#4caf50', bg: '#e8f5e9' },
   4: { label: '已拒绝', color: '#999', bg: '#f5f5f5' }
 }
 const statusInfo = computed(() => statusMap[bounty.value.status] || statusMap[4])
 const isOwner = computed(() => userStore.isLoggedIn && userStore.userId === bounty.value.userId)
+const isApplicant = computed(() =>
+  userStore.isLoggedIn && bounty.value.applicantId && userStore.userId === bounty.value.applicantId
+)
 const canApply = computed(() => userStore.isLoggedIn && bounty.value.status === 1 && !isOwner.value)
 const showApplyForm = computed(() => bounty.value.status === 1 && !isOwner.value)
+
+// 买方（发布者）确认状态
+const buyerConfirmed = computed(() => order.value?.buyerConfirm === 1)
+// 卖方（接单人）确认状态
+const sellerConfirmed = computed(() => order.value?.sellerConfirm === 1)
+// 是否已取消
+const isCancelled = computed(() => order.value?.status === 5)
 
 const applications = ref([])
 const loadingApps = ref(false)
@@ -121,6 +151,8 @@ async function handleAccept(appId) {
     const res = await api.get(`/bounty/${bounty.value.id}`)
     bounty.value = res.data || {}
     showApps.value = false
+    // 加载订单信息
+    loadOrder()
   } catch (e) { /* handled */ }
 }
 
@@ -153,13 +185,58 @@ async function handleDelete() {
   }
 }
 
+// 发布者确认完成（买方）
 async function handleComplete() {
   try {
-    await api.put(`/bounty/${bounty.value.id}/complete`)
-    ElMessage.success('悬赏已完成')
-    const res = await api.get(`/bounty/${bounty.value.id}`)
-    bounty.value = res.data || {}
+    const res = await api.put(`/bounty/${bounty.value.id}/complete`)
+    ElMessage.success(res.msg || '已确认完成')
+    await refreshBountyAndOrder()
   } catch (e) { /* handled */ }
+}
+
+// 接单人确认完成（卖方）
+async function handleApplicantComplete() {
+  try {
+    const res = await api.put(`/bounty/${bounty.value.id}/applicant-complete`)
+    ElMessage.success(res.msg || '已确认完成')
+    await refreshBountyAndOrder()
+  } catch (e) { /* handled */ }
+}
+
+// 取消悬赏订单
+async function handleCancelOrder() {
+  try {
+    await ElMessageBox.confirm('确定要取消此悬赏订单吗？时间币将解冻退还。', '确认取消', {
+      confirmButtonText: '确定取消',
+      cancelButtonText: '暂不取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
+    })
+    await api.put(`/bounty/${bounty.value.id}/cancel-order`)
+    ElMessage.success('订单已取消，时间币已解冻')
+    await refreshBountyAndOrder()
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') { /* handled by interceptor */ }
+  }
+}
+
+// 申诉（跳转到申诉页）
+function handleAppeal() {
+  if (order.value?.id) {
+    router.push(`/appeal/create?orderId=${order.value.id}`)
+  } else {
+    ElMessage.warning('未找到关联订单')
+  }
+}
+
+async function refreshBountyAndOrder() {
+  const res = await api.get(`/bounty/${bounty.value.id}`)
+  bounty.value = res.data || {}
+  if (bounty.value.status === 2) {
+    await loadOrder()
+  } else {
+    order.value = null
+  }
 }
 </script>
 
@@ -204,23 +281,97 @@ async function handleComplete() {
             <p class="desc-text">{{ bounty.description || '暂无详细描述' }}</p>
           </div>
 
+          <!-- 进行中状态：订单确认进度 -->
+          <div class="content-card" v-if="bounty.status === 2 && order">
+            <h3>交易进度</h3>
+            <div class="confirm-progress">
+              <div class="progress-step" :class="{ done: buyerConfirmed }">
+                <div class="step-icon">
+                  <Icon :icon="buyerConfirmed ? 'mdi:check-circle' : 'mdi:clock-outline'" />
+                </div>
+                <div class="step-info">
+                  <span class="step-label">发布者确认</span>
+                  <span class="step-status" :class="{ done: buyerConfirmed }">
+                    {{ buyerConfirmed ? '已确认' : '待确认' }}
+                  </span>
+                </div>
+              </div>
+              <div class="progress-connector" :class="{ done: buyerConfirmed && sellerConfirmed }"></div>
+              <div class="progress-step" :class="{ done: sellerConfirmed }">
+                <div class="step-icon">
+                  <Icon :icon="sellerConfirmed ? 'mdi:check-circle' : 'mdi:clock-outline'" />
+                </div>
+                <div class="step-info">
+                  <span class="step-label">接单人确认</span>
+                  <span class="step-status" :class="{ done: sellerConfirmed }">
+                    {{ sellerConfirmed ? '已确认' : '待确认' }}
+                  </span>
+                </div>
+              </div>
+              <div class="progress-connector" :class="{ done: buyerConfirmed && sellerConfirmed }"></div>
+              <div class="progress-step" :class="{ done: buyerConfirmed && sellerConfirmed }">
+                <div class="step-icon">
+                  <Icon icon="mdi:check-circle" />
+                </div>
+                <div class="step-info">
+                  <span class="step-label">交易完成</span>
+                  <span class="step-status" :class="{ done: buyerConfirmed && sellerConfirmed }">
+                    {{ buyerConfirmed && sellerConfirmed ? '已完成' : '等待中' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p class="confirm-hint" v-if="buyerConfirmed && !sellerConfirmed">发布者已确认，等待接单人确认</p>
+            <p class="confirm-hint" v-else-if="sellerConfirmed && !buyerConfirmed">接单人已确认，等待发布者确认</p>
+            <p class="confirm-hint success" v-else-if="buyerConfirmed && sellerConfirmed">双方已确认，交易完成</p>
+          </div>
+
           <!-- 发布者管理 -->
           <div class="content-card" v-if="isOwner">
             <h3>管理悬赏</h3>
             <div class="owner-actions">
-              <button class="btn-primary" @click="loadApplications" v-if="bounty.status === 1">
-                <Icon icon="mdi:format-list-bulleted" /> 查看申请列表
-              </button>
-              <button class="btn-edit" @click="handleEdit" v-if="bounty.status === 0 || bounty.status === 1">
-                <Icon icon="mdi:pencil" /> 编辑
-              </button>
-              <button class="btn-delete" @click="handleDelete" v-if="bounty.status === 0 || bounty.status === 1">
-                <Icon icon="mdi:delete-outline" /> 删除
-              </button>
-              <button class="btn-success" @click="handleComplete" v-if="bounty.status === 2">
-                <Icon icon="mdi:check-circle" /> 确认完成
-              </button>
+              <!-- 已发布：查看申请 -->
+              <template v-if="bounty.status === 1">
+                <button class="btn-primary" @click="loadApplications">
+                  <Icon icon="mdi:format-list-bulleted" /> 查看申请列表
+                </button>
+                <button class="btn-edit" @click="handleEdit">
+                  <Icon icon="mdi:pencil" /> 编辑
+                </button>
+                <button class="btn-delete" @click="handleDelete">
+                  <Icon icon="mdi:delete-outline" /> 删除
+                </button>
+              </template>
+              <!-- 进行中：确认完成 / 取消 -->
+              <template v-if="bounty.status === 2">
+                <button v-if="!buyerConfirmed && !isCancelled" class="btn-success" @click="handleComplete">
+                  <Icon icon="mdi:check-circle" /> 确认完成
+                </button>
+                <span v-if="buyerConfirmed && !sellerConfirmed" class="confirmed-badge">
+                  <Icon icon="mdi:check" /> 已确认，等待对方
+                </span>
+                <span v-if="buyerConfirmed && sellerConfirmed" class="confirmed-badge done">
+                  <Icon icon="mdi:check-all" /> 交易已完成
+                </span>
+                <button v-if="!isCancelled && !buyerConfirmed" class="btn-cancel-order" @click="handleCancelOrder">
+                  <Icon icon="mdi:cancel" /> 取消订单
+                </button>
+                <button v-if="!isCancelled" class="btn-appeal" @click="handleAppeal">
+                  <Icon icon="mdi:alert-circle-outline" /> 申诉
+                </button>
+              </template>
+              <!-- 编辑/删除（待审核/已发布） -->
+              <template v-if="bounty.status === 0">
+                <button class="btn-edit" @click="handleEdit">
+                  <Icon icon="mdi:pencil" /> 编辑
+                </button>
+                <button class="btn-delete" @click="handleDelete">
+                  <Icon icon="mdi:delete-outline" /> 删除
+                </button>
+              </template>
             </div>
+
+            <!-- 申请列表 -->
             <div class="app-list" v-if="showApps && applications.length > 0" v-loading="loadingApps">
               <div v-for="app in applications" :key="app.id" class="app-item">
                 <div class="app-user-card">
@@ -248,6 +399,31 @@ async function handleComplete() {
             <el-empty v-if="showApps && applications.length === 0 && !loadingApps" description="暂无申请" :image-size="60" />
           </div>
 
+          <!-- 接单人操作 -->
+          <div class="content-card" v-if="isApplicant && bounty.status === 2">
+            <h3>我的接单</h3>
+            <div class="applicant-actions">
+              <template v-if="!sellerConfirmed && !isCancelled">
+                <button class="btn-success" @click="handleApplicantComplete">
+                  <Icon icon="mdi:check-circle" /> 我已完成
+                </button>
+                <button class="btn-cancel-order" @click="handleCancelOrder">
+                  <Icon icon="mdi:cancel" /> 取消订单
+                </button>
+              </template>
+              <span v-if="sellerConfirmed && !buyerConfirmed" class="confirmed-badge">
+                <Icon icon="mdi:check" /> 已确认，等待发布者确认
+              </span>
+              <span v-if="buyerConfirmed && sellerConfirmed" class="confirmed-badge done">
+                <Icon icon="mdi:check-all" /> 交易已完成
+              </span>
+              <button v-if="!isCancelled" class="btn-appeal" @click="handleAppeal">
+                <Icon icon="mdi:alert-circle-outline" /> 申诉
+              </button>
+              <span v-if="isCancelled" class="cancelled-label">订单已取消</span>
+            </div>
+          </div>
+
           <!-- 申请表单 -->
           <div class="apply-card" v-if="showApplyForm">
             <h3>申请接单</h3>
@@ -264,7 +440,7 @@ async function handleComplete() {
             </button>
           </div>
 
-          <div class="apply-card closed" v-else-if="bounty.status !== 1">
+          <div class="apply-card closed" v-else-if="bounty.status !== 1 && !isOwner && !isApplicant">
             <Icon icon="mdi:lock" /> 该悬赏{{ statusInfo.label }}，不再接受申请
           </div>
         </div>
@@ -299,6 +475,13 @@ async function handleComplete() {
                 </button>
               </div>
             </div>
+            <!-- 接单人信息 -->
+            <div class="info-row" v-if="bounty.applicantId">
+              <span>接单人</span>
+              <span class="link-text" @click="router.push(`/profile/${bounty.applicantId}`)">
+                {{ bounty.applicantName || '#' + bounty.applicantId }}
+              </span>
+            </div>
             <div class="info-row">
               <span>发布时间</span>
               <span>{{ bounty.createTime }}</span>
@@ -306,10 +489,6 @@ async function handleComplete() {
             <div class="info-row" v-if="bounty.deadline">
               <span>截止时间</span>
               <span>{{ bounty.deadline }}</span>
-            </div>
-            <div class="info-row">
-              <span>接单人</span>
-              <span>{{ bounty.applicantId ? '#' + bounty.applicantId : '待接单' }}</span>
             </div>
           </div>
         </div>
@@ -417,10 +596,12 @@ async function handleComplete() {
 .apply-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
 /* Owner actions */
-.owner-actions {
+.owner-actions, .applicant-actions {
   display: flex;
   gap: 10px;
   margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .btn-primary {
   padding: 9px 18px;
@@ -491,6 +672,60 @@ async function handleComplete() {
 .btn-delete:hover {
   background: #fef0f0;
   border-color: #f56c6c;
+}
+.btn-cancel-order {
+  padding: 9px 18px;
+  background: #fff;
+  color: #909399;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-cancel-order:hover {
+  background: #f5f5f5;
+  border-color: #c0c0c0;
+}
+.btn-appeal {
+  padding: 9px 18px;
+  background: #fff;
+  color: #e6a23c;
+  border: 1px solid #f5dab0;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.btn-appeal:hover {
+  background: #fdf6ec;
+}
+.confirmed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 14px;
+  background: #fdf6ec;
+  color: #e6a23c;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.confirmed-badge.done {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+.cancelled-label {
+  color: #909399;
+  font-size: 13px;
+  font-weight: 500;
 }
 .app-list {
   margin-top: 14px;
@@ -603,6 +838,65 @@ async function handleComplete() {
   font-size: 14px;
 }
 
+/* 交易进度 */
+.confirm-progress {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 4px;
+}
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.progress-step .step-icon {
+  font-size: 28px;
+  color: #e0e0e0;
+}
+.progress-step.done .step-icon {
+  color: #67c23a;
+}
+.step-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.step-label {
+  font-size: 12px;
+  color: #999;
+}
+.step-status {
+  font-size: 11px;
+  color: #ccc;
+  font-weight: 600;
+}
+.step-status.done {
+  color: #67c23a;
+}
+.progress-connector {
+  flex: 1;
+  height: 2px;
+  background: #e0e0e0;
+  margin: 0 8px;
+  margin-bottom: 26px;
+}
+.progress-connector.done {
+  background: #67c23a;
+}
+.confirm-hint {
+  font-size: 13px;
+  color: #e6a23c;
+  text-align: center;
+  margin: 4px 0 0;
+}
+.confirm-hint.success {
+  color: #67c23a;
+}
+
 /* ========== 右侧 ========== */
 .side-card {
   background: #fff;
@@ -643,11 +937,11 @@ async function handleComplete() {
   color: #555;
   font-weight: 500;
 }
-.clickable {
+.link-text {
   color: #e8784a !important;
   cursor: pointer;
 }
-.clickable:hover { text-decoration: underline; }
+.link-text:hover { text-decoration: underline; }
 
 /* 发布者卡片（右侧信息卡内） */
 .publisher-card {

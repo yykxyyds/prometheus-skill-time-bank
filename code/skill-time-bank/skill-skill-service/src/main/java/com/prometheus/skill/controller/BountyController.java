@@ -109,14 +109,59 @@ public class BountyController {
     }
 
     /**
-     * 确认完成悬赏（需登录，仅悬赏发布者）
+     * 确认完成悬赏（需登录，仅悬赏发布者/买方）
+     * 发布者确认完成，若接单人已确认则自动完成，否则等待对方确认
      */
     @RequireAuth
     @PutMapping("/{id}/complete")
     public Result<String> complete(@PathVariable Long id) {
         Long userId = getCurrentUserId();
         bountyService.completeBounty(id, userId);
-        return Result.success("悬赏已完成");
+        return Result.success("确认完成，等待对方确认");
+    }
+
+    /**
+     * 接单人确认完成悬赏（需登录，仅接单人/卖方）
+     * 接单人确认完成，若发布者已确认则自动完成，否则等待对方确认
+     */
+    @RequireAuth
+    @PutMapping("/{id}/applicant-complete")
+    public Result<String> applicantComplete(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        bountyService.applicantConfirmComplete(id, userId);
+        return Result.success("确认完成，等待对方确认");
+    }
+
+    /**
+     * 取消悬赏订单（需登录，进行中的悬赏可取消并退款）
+     */
+    @RequireAuth
+    @PutMapping("/{id}/cancel-order")
+    public Result<String> cancelOrder(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        bountyService.cancelBountyOrder(id, userId);
+        return Result.success("已取消，时间币已解冻");
+    }
+
+    /**
+     * 获取悬赏关联的订单（需登录，参与方可见）
+     */
+    @RequireAuth
+    @GetMapping("/{id}/order")
+    public Result<com.prometheus.order.entity.SkillOrder> getOrder(@PathVariable Long id) {
+        return Result.success(bountyService.getBountyOrder(id));
+    }
+
+    /**
+     * 从悬赏发起申诉（需登录，参与方）
+     */
+    @RequireAuth
+    @PostMapping("/{id}/appeal")
+    public Result<String> createAppeal(@PathVariable Long id,
+                                        @RequestBody com.prometheus.wallet.entity.Appeal appeal) {
+        Long userId = getCurrentUserId();
+        bountyService.createBountyAppeal(id, userId, appeal);
+        return Result.success("申诉已提交，请等待管理员处理");
     }
 
     /**

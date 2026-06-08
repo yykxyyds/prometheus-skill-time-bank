@@ -22,8 +22,12 @@ public interface SkillMapper extends BaseMapper<Skill> {
             "LEFT JOIN user u ON s.user_id = u.id " +
             "WHERE s.status = 1 " +
             "<if test='categoryId != null and categoryId != 0'>AND s.category_id = #{categoryId}</if>" +
-            "<if test='keyword != null and keyword != \"\"'>AND s.title LIKE CONCAT('%',#{keyword},'%')</if>" +
+            "<if test='keyword != null and keyword != \"\"'>AND (s.title LIKE CONCAT('%',#{keyword},'%') OR s.description LIKE CONCAT('%',#{keyword},'%'))</if>" +
             "<choose>" +
+            "  <when test='sort == \"relevance\"'>ORDER BY " +
+            "    CASE WHEN s.title LIKE CONCAT('%',#{keyword},'%') THEN 0 ELSE 1 END, " +
+            "    CASE WHEN s.description LIKE CONCAT('%',#{keyword},'%') THEN 0 ELSE 1 END, " +
+            "    s.create_time DESC</when>" +
             "  <when test='sort == \"price\"'>ORDER BY s.price ASC</when>" +
             "  <when test='sort == \"popular\"'>ORDER BY s.view_count DESC</when>" +
             "  <when test='sort == \"orders\"'>ORDER BY s.order_count DESC</when>" +

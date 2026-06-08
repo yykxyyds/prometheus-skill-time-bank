@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getConversations, getPrivateMessages, sendMessage, markAsRead } from '../api/message'
-import { getNotifications, markNotificationRead } from '../api/notification'
 import { Icon } from '@iconify/vue'
 import { ElMessage } from 'element-plus'
 
@@ -12,46 +11,17 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const conversations = ref([])
-const notifications = ref([])
 const messages = ref([])
 const activeConv = ref(null)
 const inputText = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const listRef = ref(null)
-const showNotifications = ref(true)
 const sidebarVisible = ref(true)
 let pollTimer = null
 
-async function loadNotifications() {
-  try {
-    const res = await getNotifications()
-    notifications.value = res.data || []
-  } catch { /* silent */ }
-}
-
-async function handleNotifClick(notif) {
-  if (notif.isRead === 0) {
-    try { await markNotificationRead(notif.id) } catch {}
-    notif.isRead = 1
-    userStore.refreshUnread()
-  }
-  if (notif.type === 'BOUNTY' || notif.type === 'bounty') {
-    router.push(`/bounty/${notif.targetId}`)
-  }
-}
-
-function formatNotifTime(t) {
-  if (!t) return ''
-  const d = new Date(t)
-  const now = new Date()
-  const pad = n => String(n).padStart(2, '0')
-  if (d.toDateString() === now.toDateString()) return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
 onMounted(async () => {
-  await Promise.all([loadConversations(), loadNotifications()])
+  await loadConversations()
   const qUserId = route.query.userId
   if (qUserId) {
     const conv = conversations.value.find(c => String(c.otherUserId) === qUserId)
@@ -201,38 +171,6 @@ function goProfile(uid) {
         <div class="conv-header">
           <h3>消息</h3>
         </div>
-        <!-- 通知区域 -->
-        <div v-if="notifications.length > 0 && showNotifications" class="notif-section">
-          <div class="notif-section-header">
-            <span class="notif-section-title"><Icon icon="mdi:bell" /> 通知</span>
-            <button class="notif-collapse-btn" @click="showNotifications = false">
-              <Icon icon="mdi:chevron-up" />
-            </button>
-          </div>
-          <div class="notif-list">
-            <div
-              v-for="notif in notifications"
-              :key="notif.id"
-              class="notif-item"
-              :class="{ unread: notif.isRead === 0 }"
-              @click="handleNotifClick(notif)"
-            >
-              <div class="notif-dot" v-if="notif.isRead === 0"></div>
-              <div class="notif-content">
-                <div class="notif-title">{{ notif.title }}</div>
-                <div class="notif-desc">{{ notif.content }}</div>
-                <div class="notif-time">{{ formatNotifTime(notif.createTime) }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 已折叠通知 -->
-        <div v-if="notifications.length > 0 && !showNotifications" class="notif-collapsed" @click="showNotifications = true">
-          <Icon icon="mdi:bell" />
-          <span>{{ notifications.filter(n => n.isRead === 0).length > 0 ? notifications.filter(n => n.isRead === 0).length + ' 条新通知' : '通知' }}</span>
-          <Icon icon="mdi:chevron-down" />
-        </div>
-
         <div class="conv-list" v-if="conversations.length > 0">
           <div
             v-for="conv in conversations"
@@ -257,7 +195,7 @@ function goProfile(uid) {
             </div>
           </div>
         </div>
-        <div v-else-if="notifications.length === 0" class="conv-empty">
+        <div v-else class="conv-empty">
           <Icon icon="mdi:message-text-outline" class="empty-icon" />
           <p>暂无消息</p>
         </div>
@@ -588,92 +526,6 @@ function goProfile(uid) {
   transform: translateY(-1px);
 }
 
-/* 通知区域 */
-.notif-section {
-  border-bottom: 1px solid #f0e8e0;
-  max-height: 220px;
-  overflow: hidden;
-}
-.notif-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px 6px;
-}
-.notif-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e8784a;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.notif-collapse-btn {
-  background: none;
-  border: none;
-  color: #bbb;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px;
-}
-.notif-collapse-btn:hover { color: #666; }
-.notif-list {
-  overflow-y: auto;
-  max-height: 170px;
-}
-.notif-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: background 0.15s;
-  border-bottom: 1px solid #fdfcf9;
-}
-.notif-item:hover { background: rgba(232,120,74,0.04); }
-.notif-item.unread { background: rgba(232,120,74,0.03); }
-.notif-item.unread:hover { background: rgba(232,120,74,0.06); }
-.notif-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e8784a;
-  flex-shrink: 0;
-  margin-top: 5px;
-}
-.notif-content { flex: 1; min-width: 0; }
-.notif-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 2px;
-}
-.notif-desc {
-  font-size: 12px;
-  color: #999;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.notif-time {
-  font-size: 10px;
-  color: #ccc;
-  margin-top: 3px;
-}
-.notif-collapsed {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 20px;
-  font-size: 13px;
-  color: #e8784a;
-  cursor: pointer;
-  border-bottom: 1px solid #f0e8e0;
-  transition: background 0.15s;
-  font-weight: 500;
-}
-.notif-collapsed:hover { background: rgba(232,120,74,0.04); }
-
 @media (max-width: 900px) {
   .conv-sidebar { width: 280px; }
 }
@@ -699,9 +551,6 @@ function goProfile(uid) {
 
   .back-btn { display: block; }
   .chat-area { width: 100%; }
-
-  .notif-section { max-height: 180px; }
-  .notif-list { max-height: 130px; }
 }
 
 @media (max-width: 480px) {

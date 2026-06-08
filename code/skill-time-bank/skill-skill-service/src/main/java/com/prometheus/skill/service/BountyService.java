@@ -1,7 +1,9 @@
 package com.prometheus.skill.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.prometheus.order.entity.SkillOrder;
 import com.prometheus.skill.entity.Bounty;
+import com.prometheus.wallet.entity.Appeal;
 
 /**
  * 悬赏服务接口
@@ -39,9 +41,29 @@ public interface BountyService {
     void rejectApplication(Long bountyId, Long applicationId, Long ownerId);
 
     /**
-     * 确认完成悬赏
+     * 发布者确认完成悬赏（买方确认），双方均确认后自动完成
      */
     void completeBounty(Long bountyId, Long ownerId);
+
+    /**
+     * 接单人确认完成悬赏（卖方确认），双方均确认后自动完成
+     */
+    void applicantConfirmComplete(Long bountyId, Long applicantId);
+
+    /**
+     * 取消悬赏订单并退款（仅进行中状态可取消）
+     */
+    void cancelBountyOrder(Long bountyId, Long userId);
+
+    /**
+     * 获取悬赏关联的订单详情
+     */
+    SkillOrder getBountyOrder(Long bountyId);
+
+    /**
+     * 从悬赏发起申诉（自动关联订单）
+     */
+    void createBountyAppeal(Long bountyId, Long userId, Appeal appeal);
 
     /**
      * 悬赏详情（含发布者用户名）

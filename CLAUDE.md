@@ -18,9 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 层   | 技术                                                                                                                     |
 | --- | ---------------------------------------------------------------------------------------------------------------------- |
 | 后端  | Spring Boot 3.2 + MyBatis-Plus 3.5.5                                                                                   |
-| 数据库 | MySQL 8.0.45，库名 `prometheus_skill_bank`，账户 `root/root`，端口 3306，安装于 `D:\MySQL\mysql-8.0.45-winx64`，数据目录 `D:\MySQL\data` |
+| 数据库 | MySQL 8.0.40，库名 `prometheus_skill_bank`，账户 `root/123456`，端口 3306，安装于 `D:\Dev\config\MySQL\MySQL Server 8.0`，数据目录 `D:\Dev\config\MySQL\MySQL Server 8.0\Data` |
 | 构建  | Maven 多模块聚合工程（非微服务），Java 17                                                                                            |
-| 前端  | Vue 3 + Vite 8 + Element Plus + Pinia + Axios                                                                          |
+| 前端  | Vue 3 + Vite 8 + Element Plus + Pinia + Axios + ECharts 6 + @iconify/vue                                                  |
 | 辅助  | JWT (jjwt 0.12.3)、Hutool 5.8、Lombok、SpringDoc OpenAPI 2.3                                                              |
 
 > ⚠️ **不使用 Spring Cloud / Nacos / 微服务**。项目是 **Spring Boot 多模块聚合工程**，模块间通过 Maven 依赖直接调用 service 接口，不经过 RPC/服务发现。
@@ -67,7 +67,7 @@ java -jar code/skill-time-bank/skill-gateway/target/skill-gateway-1.0.2.jar
 mvn clean compile -pl skill-common -am
 
 # 导入测试数据（init.sql 仅基础数据，需 seed 脚本才有业务演示数据）
-MSQL="D:/MySQL/mysql-8.0.45-winx64/bin/mysql.exe -u root -proot -h 127.0.0.1 -P 3306 prometheus_skill_bank"
+MSQL="mysql -u root -p123456 -h 127.0.0.1 -P 3306 prometheus_skill_bank"
 $MSQL < code/database/seed_demo.sql
 
 # 启动用户前端（端口 5173，首次需 npm install）
@@ -82,7 +82,7 @@ cd code/skill-admin-web && npm install && npm run dev
 
 ## 数据库
 
-- MySQL 8.0.45，服务名 `MySQL80`，安装于 `D:\MySQL\mysql-8.0.45-winx64`，数据目录 `D:\MySQL\data`
+- MySQL 8.0.40，服务名 `MySQL80`，安装于 `D:\Dev\config\MySQL\MySQL Server 8.0`，数据目录 `D:\Dev\config\MySQL\MySQL Server 8.0\Data`，配置文件 `D:\Dev\config\MySQL\MySQL Server 8.0\my.ini`，服务以 `NT AUTHORITY\NetworkService` 身份运行
 - C 盘已无 MySQL（Installer 已清理），全部在 D 盘
 - 库名: `prometheus_skill_bank`，共 15 张表
 - 建表脚本: `code/database/init.sql`
@@ -91,8 +91,8 @@ cd code/skill-admin-web && npm install && npm run dev
 - 连接URL: `jdbc:mysql://localhost:3306/prometheus_skill_bank?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai`
 
 ```bash
-# 命令行连接（mysql 不在系统 PATH，用 D 盘完整路径）
-"D:/MySQL/mysql-8.0.45-winx64/bin/mysql.exe" -u root -proot -h 127.0.0.1 -P 3306 prometheus_skill_bank
+# 命令行连接（MySQL 已在系统 PATH）
+mysql -u root -p123456 -h 127.0.0.1 -P 3306 prometheus_skill_bank
 ```
 
 ## Docker 部署

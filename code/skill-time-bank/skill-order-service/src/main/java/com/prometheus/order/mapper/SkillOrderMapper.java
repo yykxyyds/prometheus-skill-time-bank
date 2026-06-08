@@ -24,10 +24,13 @@ public interface SkillOrderMapper extends BaseMapper<SkillOrder> {
             "WHERE o.id = #{id}")
     SkillOrder selectByIdWithDetails(@Param("id") Long id);
 
+    @Select("SELECT * FROM skill_order WHERE bounty_id = #{bountyId} ORDER BY id DESC LIMIT 1")
+    SkillOrder selectByBountyId(@Param("bountyId") Long bountyId);
+
     @Select("SELECT * FROM skill_order WHERE id = #{id} FOR UPDATE")
     SkillOrder selectByIdForUpdate(@Param("id") Long id);
 
-    @Select("SELECT * FROM skill_order WHERE bounty_id = #{bountyId} FOR UPDATE")
+    @Select("SELECT * FROM skill_order WHERE bounty_id = #{bountyId} ORDER BY id DESC LIMIT 1 FOR UPDATE")
     SkillOrder selectByBountyIdForUpdate(@Param("bountyId") Long bountyId);
 
     @Select("SELECT o.*, " +

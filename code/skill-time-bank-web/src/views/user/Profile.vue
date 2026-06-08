@@ -76,6 +76,21 @@ const reputation = ref({})
 const reviews = ref([])
 const radarLabels = ['按时', '沟通', '专业', '态度']
 const radarMax = 5
+const hoveredPoint = ref(null)
+
+const pointCoords = computed(() => {
+  const data = reputation.value.radarData
+  if (!data || data.length === 0) return []
+  const cx = 90, cy = 90, r = 65
+  const angles = [-90, 0, 90, 180]
+  return radarLabels.map((label, i) => {
+    const item = data.find(d => d.tag === label)
+    const score = item ? (item.score || 0) : 0
+    const ratio = score / radarMax
+    const rad = (angles[i] * Math.PI) / 180
+    return { x: cx + r * ratio * Math.cos(rad), y: cy + r * ratio * Math.sin(rad), score, label }
+  })
+})
 
 const radarPoints = computed(() => {
   const data = reputation.value.radarData
@@ -392,7 +407,17 @@ async function handleFileChange(e) {
       <h3>信誉雷达</h3>
       <div class="radar-body">
         <div class="radar-chart-wrap">
-          <svg viewBox="0 0 180 180" class="radar-svg">
+          <svg viewBox="0 0 180 180" class="radar-svg"
+            @mouseleave="hoveredPoint = null"
+          >
+            <!-- 背景光晕 -->
+            <circle cx="90" cy="90" r="70" fill="url(#radarGlow)" class="bg-glow" />
+            <defs>
+              <radialGradient id="radarGlow">
+                <stop offset="0%" stop-color="#e8784a" stop-opacity="0.15" />
+                <stop offset="100%" stop-color="#e8784a" stop-opacity="0" />
+              </radialGradient>
+            </defs>
             <!-- 网格 -->
             <polygon v-for="(pts, i) in gridPolygons" :key="i"
               :points="pts"
@@ -405,27 +430,54 @@ async function handleFileChange(e) {
             />
             <!-- 数据区域 -->
             <polygon v-if="radarPoints" :points="radarPoints"
-              class="radar-data-polygon"
-              fill="rgba(232,120,74,0.2)" stroke="#e8784a" stroke-width="1.5"
-              pathLength="100"
+              class="radar-polygon"
+              fill="rgba(232,120,74,0.15)" stroke="#e8784a" stroke-width="1.5"
+            />
+            <!-- 高亮轴线（从中心到 hover 的点） -->
+            <line v-for="(pt, i) in pointCoords" :key="'hl'+i"
+              x1="90" y1="90" :x2="pt.x" :y2="pt.y"
+              stroke="#e8784a" stroke-width="0"
+              class="highlight-line"
+              :class="{ 'highlight-line-on': hoveredPoint === i }"
+            />
+            <!-- 声纳环 -->
+            <circle v-for="(pt, i) in pointCoords" :key="'s'+i"
+              :cx="pt.x" :cy="pt.y" r="4" fill="none" stroke="#e8784a" stroke-width="1.5"
+              class="sonar-ring"
+              :class="{ 'sonar-ring-on': hoveredPoint === i }"
+            />
+            <!-- 数据点 hover 热区 -->
+            <circle v-for="(pt, i) in pointCoords" :key="'h'+i"
+              :cx="pt.x" :cy="pt.y" r="14" fill="transparent"
+              style="cursor:pointer"
+              @mouseenter="hoveredPoint = i"
+              @mouseleave="hoveredPoint = null"
             />
             <!-- 数据点 -->
-            <circle v-if="radarPoints" v-for="(pt, i) in radarPoints.split(' ')" :key="'d'+i"
-              :cx="pt.split(',')[0]" :cy="pt.split(',')[1]" r="3"
-              fill="#e8784a" stroke="#fff" stroke-width="1"
-              class="radar-data-point"
+            <circle v-if="radarPoints" v-for="(pt, i) in pointCoords" :key="'d'+i"
+              :cx="pt.x" :cy="pt.y" r="3"
+              fill="#e8784a" stroke="#fff" stroke-width="1.5"
+              class="radar-dot"
               :style="{ animationDelay: (0.6 + i * 0.15) + 's' }"
             />
+            <!-- 分数 tag（hover 时在轴线末端展开） -->
+            <g v-for="(pt, i) in pointCoords" :key="'v'+i"
+              class="score-tag"
+              :class="{ 'score-tag-on': hoveredPoint === i }"
+            >
+              <circle :cx="pt.x" :cy="pt.y" r="13" fill="#fff" stroke="#e8784a" stroke-width="1.5" />
+              <text :x="pt.x" :y="pt.y + 0.5" text-anchor="middle" dominant-baseline="middle"
+                font-size="10" font-weight="700" fill="#e8784a"
+              >{{ pt.score }}</text>
+            </g>
             <!-- 标签 -->
             <text v-for="(pt, i) in axisLabels" :key="'t'+i"
               :x="pt.x" :y="pt.y"
               text-anchor="middle" dominant-baseline="middle"
-              font-size="10" fill="#666"
+              font-size="10" fill="#999"
               class="radar-label"
-              :style="{ animationDelay: (0.8 + i * 0.1) + 's' }"
+              :style="{ animationDelay: (0.8 + i * 0.08) + 's' }"
             >{{ pt.label }}</text>
-            <!-- 扫描光晕 -->
-            <circle cx="90" cy="90" r="30" class="radar-pulse" />
           </svg>
         </div>
         <div class="radar-stats">
@@ -739,44 +791,83 @@ async function handleFileChange(e) {
 .radar-svg { width: 200px; height: 200px; display: block; overflow: visible; }
 
 /* ========== 雷达图动画 ========== */
-@keyframes radarDraw {
-  0% { stroke-dashoffset: 100; opacity: 0.2; fill-opacity: 0; }
-  50% { stroke-dashoffset: 0; opacity: 1; fill-opacity: 0.05; }
-  100% { stroke-dashoffset: 0; opacity: 1; fill-opacity: 0.2; }
+
+/* 背景光晕常亮 */
+.bg-glow {
+  opacity: 1;
+  animation: glowPulse 3s ease-in-out infinite;
 }
-.radar-data-polygon {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: radarDraw 1.2s ease-out forwards;
+@keyframes glowPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
+}
+
+/* 入场：数据多边形渐现 */
+@keyframes radarIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.radar-polygon {
+  animation: radarIn 0.6s ease-out forwards;
   transform-origin: 90px 90px;
 }
 
-@keyframes pointPop {
-  0% { opacity: 0; transform: scale(0); }
-  60% { transform: scale(1.4); }
-  100% { opacity: 1; transform: scale(1); }
+/* 入场：数据点弹出 */
+@keyframes dotPop {
+  0% { opacity: 0; r: 0; }
+  100% { opacity: 1; r: 3; }
 }
-.radar-data-point {
-  animation: pointPop 0.4s ease-out both;
+.radar-dot {
+  animation: dotPop 0.3s ease-out both;
 }
 
-@keyframes labelFade {
+/* 声纳环动画（hover 时在数据点外扩散） */
+@keyframes sonarWave {
+  0% { opacity: 0.7; r: 3; stroke-width: 2; }
+  100% { opacity: 0; r: 20; stroke-width: 0.5; }
+}
+.sonar-ring {
+  opacity: 0;
+}
+.sonar-ring-on {
+  opacity: 1;
+  animation: sonarWave 1s ease-out infinite;
+  pointer-events: none;
+}
+
+/* 高亮轴线（从中心到 hover 点的连线） */
+.highlight-line {
+  transition: stroke-width 0.3s ease;
+}
+.highlight-line-on {
+  stroke-width: 1.2 !important;
+  stroke-opacity: 0.45;
+}
+
+/* 分数 tag 弹出 */
+@keyframes tagPop {
+  0% { opacity: 0; transform: scale(0.5); }
+  70% { transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.score-tag {
+  opacity: 0;
+  pointer-events: none;
+}
+.score-tag-on {
+  opacity: 1 !important;
+  animation: tagPop 0.25s ease-out both;
+  pointer-events: none;
+}
+
+/* 标签入场 */
+@keyframes labelIn {
   0% { opacity: 0; transform: translateY(4px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 .radar-label {
-  animation: labelFade 0.4s ease-out both;
-}
-
-/* 扫描脉冲 */
-@keyframes radarPulse {
-  0% { opacity: 0.4; r: 10; }
-  50% { opacity: 0.08; r: 65; }
-  100% { opacity: 0; r: 90; }
-}
-.radar-pulse {
-  fill: #e8784a;
-  animation: radarPulse 2s ease-out 0.5s 1 both;
+  animation: labelIn 0.3s ease-out both;
 }
 
 .radar-stats {

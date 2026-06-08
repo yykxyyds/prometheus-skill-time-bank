@@ -15,7 +15,9 @@ import com.prometheus.skill.service.BountyService;
 import com.prometheus.user.entity.User;
 import com.prometheus.user.mapper.UserMapper;
 import com.prometheus.user.service.NotificationService;
+import com.prometheus.wallet.entity.Appeal;
 import com.prometheus.wallet.entity.TimeTransaction;
+import com.prometheus.wallet.mapper.AppealMapper;
 import com.prometheus.wallet.mapper.TimeTransactionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ public class BountyServiceImpl implements BountyService {
     private final SkillOrderMapper skillOrderMapper;
     private final UserMapper userMapper;
     private final TimeTransactionMapper timeTransactionMapper;
+    private final AppealMapper appealMapper;
 
     @Override
     public Page<Bounty> getBountyList(int page, int size, Integer status, String keyword, Long categoryId, String type, Long userId) {
@@ -218,35 +221,234 @@ public class BountyServiceImpl implements BountyService {
     @Override
     @Transactional
     public void completeBounty(Long bountyId, Long ownerId) {
+        // 发布者（买方）确认完成
         Bounty bounty = bountyMapper.selectById(bountyId);
         if (bounty == null) {
             throw new BusinessException("悬赏不存在");
         }
         if (!bounty.getUserId().equals(ownerId)) {
-            throw new BusinessException("只能操作自己的悬赏");
+            throw new BusinessException("只有发布者可以确认完成");
         }
         if (bounty.getStatus() != 2) {
             throw new BusinessException("悬赏状态不允许确认完成");
         }
 
-        bounty.setStatus(3); // 已完成
-        bounty.setUpdateTime(LocalDateTime.now());
-        bountyMapper.updateById(bounty);
+        SkillOrder order = skillOrderMapper.selectByBountyIdForUpdate(bountyId);
+        if (order == null) {
+            throw new BusinessException("关联订单不存在");
+        }
+        if (order.getBuyerConfirm() != null && order.getBuyerConfirm() == 1) {
+            throw new BusinessException("您已确认完成，请勿重复操作");
+        }
 
-        // 完成订单并转账
-        completeBountyOrder(bounty);
+        int sellerConfirm = order.getSellerConfirm() == null ? 0 : order.getSellerConfirm();
+        if (sellerConfirm == 1) {
+            // 双方都已确认（卖方已先确认）→ 直接完成
+            order.setBuyerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
+            doCompleteBounty(bounty, order);
+        } else {
+            // 仅买方确认
+            order.setBuyerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
 
-        // 通知接单人（失败不影响业务）
-        if (bounty.getApplicantId() != null) {
             try {
                 notificationService.sendNotification(bounty.getApplicantId(), "BOUNTY",
-                        "悬赏已完成", "悬赏「" + bounty.getTitle() + "」已被发布者确认完成", bountyId);
+                        "请确认完成", "发布者已确认完成悬赏「" + bounty.getTitle() + "」，请你确认", bountyId);
             } catch (Exception e) {
                 log.warn("发送通知失败（已忽略）: {}", e.getMessage());
             }
         }
 
-        log.info("悬赏 {} 已完成，时间币已转账", bountyId);
+        log.info("买方确认完成悬赏: bountyId={}, userId={}", bountyId, ownerId);
+    }
+
+    @Override
+    @Transactional
+    public void applicantConfirmComplete(Long bountyId, Long applicantId) {
+        // 接单人（卖方）确认完成
+        Bounty bounty = bountyMapper.selectById(bountyId);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+        if (bounty.getApplicantId() == null || !bounty.getApplicantId().equals(applicantId)) {
+            throw new BusinessException("只有接单人可确认完成");
+        }
+        if (bounty.getStatus() != 2) {
+            throw new BusinessException("悬赏状态不允许确认完成");
+        }
+
+        SkillOrder order = skillOrderMapper.selectByBountyIdForUpdate(bountyId);
+        if (order == null) {
+            throw new BusinessException("关联订单不存在");
+        }
+        if (order.getSellerConfirm() != null && order.getSellerConfirm() == 1) {
+            throw new BusinessException("您已确认完成，请勿重复操作");
+        }
+
+        int buyerConfirm = order.getBuyerConfirm() == null ? 0 : order.getBuyerConfirm();
+        if (buyerConfirm == 1) {
+            // 双方都已确认（发布者已先确认）→ 直接完成
+            order.setSellerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
+            doCompleteBounty(bounty, order);
+        } else {
+            // 仅卖方确认
+            order.setSellerConfirm(1);
+            order.setUpdateTime(LocalDateTime.now());
+            skillOrderMapper.updateById(order);
+
+            try {
+                notificationService.sendNotification(bounty.getUserId(), "BOUNTY",
+                        "接单人已确认完成", "接单人已确认完成悬赏「" + bounty.getTitle() + "」，请你确认", bountyId);
+            } catch (Exception e) {
+                log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+            }
+        }
+
+        log.info("卖方确认完成悬赏: bountyId={}, userId={}", bountyId, applicantId);
+    }
+
+    /**
+     * 双方确认后完成悬赏：状态设为已完成，并完成订单转账
+     */
+    private void doCompleteBounty(Bounty bounty, SkillOrder order) {
+        // 更新悬赏状态
+        bounty.setStatus(3); // 已完成
+        bounty.setUpdateTime(LocalDateTime.now());
+        bountyMapper.updateById(bounty);
+
+        // 完成订单转账
+        completeBountyOrder(bounty);
+
+        // 通知双方（失败不影响业务）
+        try {
+            notificationService.sendNotification(bounty.getUserId(), "BOUNTY",
+                    "悬赏已完成", "悬赏「" + bounty.getTitle() + "」已完成，时间币已转给接单人", bounty.getId());
+        } catch (Exception e) {
+            log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+        }
+        if (bounty.getApplicantId() != null) {
+            try {
+                notificationService.sendNotification(bounty.getApplicantId(), "BOUNTY",
+                        "悬赏已完成", "悬赏「" + bounty.getTitle() + "」已完成，时间币已到账", bounty.getId());
+            } catch (Exception e) {
+                log.warn("发送通知失败（已忽略）: {}", e.getMessage());
+            }
+        }
+
+        log.info("悬赏双方确认完成, bountyId={}, orderId={}, amount={}",
+                bounty.getId(), order.getId(), order.getAmount());
+    }
+
+    @Override
+    @Transactional
+    public void cancelBountyOrder(Long bountyId, Long userId) {
+        Bounty bounty = bountyMapper.selectById(bountyId);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+
+        SkillOrder order = skillOrderMapper.selectByBountyIdForUpdate(bountyId);
+        if (order == null) {
+            throw new BusinessException("关联订单不存在");
+        }
+        if (!order.getBuyerId().equals(userId) && !order.getSellerId().equals(userId)) {
+            throw new BusinessException("只有参与方可以取消");
+        }
+        if (order.getStatus() != 2) {
+            throw new BusinessException("当前状态不可取消");
+        }
+
+        // 退款：解冻买方时间币
+        User buyer = userMapper.selectByIdForUpdate(order.getBuyerId());
+        if (buyer != null) {
+            int frozenAmount = order.getFrozenAmount() == null ? order.getAmount() : order.getFrozenAmount();
+            int newBalance = (buyer.getBalance() == null ? 0 : buyer.getBalance()) + frozenAmount;
+            buyer.setBalance(newBalance);
+            buyer.setFrozenBalance(Math.max((buyer.getFrozenBalance() == null ? 0 : buyer.getFrozenBalance()) - frozenAmount, 0));
+            buyer.setUpdateTime(LocalDateTime.now());
+            userMapper.updateById(buyer);
+
+            TimeTransaction tx = new TimeTransaction();
+            tx.setUserId(buyer.getId());
+            tx.setOrderId(order.getId());
+            tx.setType("UNFREEZE");
+            tx.setAmount(frozenAmount);
+            tx.setBalanceAfter(newBalance);
+            tx.setRemark("悬赏「" + bounty.getTitle() + "」取消解冻");
+            tx.setCreateTime(LocalDateTime.now());
+            timeTransactionMapper.insert(tx);
+        }
+
+        // 更新订单状态
+        order.setStatus(5); // 已取消
+        order.setFrozenAmount(0);
+        order.setUpdateTime(LocalDateTime.now());
+        skillOrderMapper.updateById(order);
+
+        // 恢复悬赏状态到已发布（可重新接单）
+        bounty.setStatus(1);
+        bounty.setApplicantId(null);
+        bounty.setUpdateTime(LocalDateTime.now());
+        bountyMapper.updateById(bounty);
+
+        // 清除旧的申请记录，允许重新申请
+        LambdaUpdateWrapper<BountyApplication> delWrapper = new LambdaUpdateWrapper<>();
+        delWrapper.eq(BountyApplication::getBountyId, bountyId);
+        applicationMapper.delete(delWrapper);
+
+        log.info("悬赏订单已取消并退款: bountyId={}, userId={}", bountyId, userId);
+    }
+
+    @Override
+    public SkillOrder getBountyOrder(Long bountyId) {
+        Bounty bounty = bountyMapper.selectById(bountyId);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+        SkillOrder order = skillOrderMapper.selectByBountyId(bountyId);
+        if (order == null) {
+            throw new BusinessException("关联订单不存在");
+        }
+        // 填充用户名
+        User buyer = userMapper.selectById(order.getBuyerId());
+        User seller = userMapper.selectById(order.getSellerId());
+        if (buyer != null) {
+            order.setBuyerName(buyer.getUsername());
+            order.setBuyerAvatar(buyer.getAvatar());
+        }
+        if (seller != null) {
+            order.setSellerName(seller.getUsername());
+            order.setSellerAvatar(seller.getAvatar());
+        }
+        order.setBountyTitle(bounty.getTitle());
+        return order;
+    }
+
+    @Override
+    @Transactional
+    public void createBountyAppeal(Long bountyId, Long userId, Appeal appeal) {
+        SkillOrder order = skillOrderMapper.selectByBountyId(bountyId);
+        if (order == null) {
+            throw new BusinessException("关联订单不存在，无法申诉");
+        }
+        Bounty bounty = bountyMapper.selectById(bountyId);
+        if (bounty == null) {
+            throw new BusinessException("悬赏不存在");
+        }
+        appeal.setOrderId(order.getId());
+        appeal.setUserId(userId);
+        appeal.setStatus(1); // 待处理
+        LocalDateTime now = LocalDateTime.now();
+        appeal.setCreateTime(now);
+        appeal.setUpdateTime(now);
+        appealMapper.insert(appeal);
+        log.info("悬赏申诉提交成功: id={}, bountyId={}, orderId={}, userId={}",
+                appeal.getId(), bountyId, order.getId(), userId);
     }
 
     @Override
