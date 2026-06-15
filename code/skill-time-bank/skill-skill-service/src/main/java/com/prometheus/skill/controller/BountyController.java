@@ -39,7 +39,10 @@ public class BountyController {
                                      @RequestParam(name = "keyword", required = false) String keyword,
                                      @RequestParam(name = "categoryId", required = false) Long categoryId,
                                      @RequestParam(name = "type", required = false) String type) {
-        Long userId = type != null ? getCurrentUserId() : null;
+        Long userId = (Long) request.getAttribute("userId");
+        if (type != null && userId == null) {
+            throw new com.prometheus.common.BusinessException(401, "请先登录");
+        }
         Page<Bounty> result = bountyService.getBountyList(page, size, status, keyword, categoryId, type, userId);
         return Result.success(result);
     }

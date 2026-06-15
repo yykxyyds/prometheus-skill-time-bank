@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getConversations, getPrivateMessages, sendMessage, markAsRead } from '../api/message'
+import { getUserProfile } from '../api/user'
 import { Icon } from '@iconify/vue'
 import { ElMessage } from 'element-plus'
 
@@ -20,21 +21,34 @@ const listRef = ref(null)
 const sidebarVisible = ref(true)
 let pollTimer = null
 
+async function ensureConversation(userId) {
+  const existing = conversations.value.find(c => String(c.otherUserId) === userId)
+  if (existing) return existing
+  // 没有历史对话，从 API 获取用户信息并创建临时会话
+  try {
+    const res = await getUserProfile(userId)
+    const profile = res.data || {}
+    const newConv = {
+      otherUserId: userId,
+      otherUsername: profile.username || '用户',
+      otherAvatar: profile.avatar,
+      lastContent: '',
+      lastTime: null,
+      unreadCount: 0
+    }
+    conversations.value.unshift(newConv)
+    return newConv
+  } catch {
+    return { otherUserId: userId, otherUsername: '用户', otherAvatar: null, unreadCount: 0 }
+  }
+}
+
 onMounted(async () => {
   await loadConversations()
   const qUserId = route.query.userId
   if (qUserId) {
-    const conv = conversations.value.find(c => String(c.otherUserId) === qUserId)
-    if (conv) {
-      openConversation(conv)
-    } else {
-      const friendNames = localStorage.getItem('friendNames')
-      let names = {}
-      try { names = friendNames ? JSON.parse(friendNames) : {} } catch { names = {} }
-      activeConv.value = { otherUserId: qUserId, otherUsername: names[qUserId] || '用户' }
-      messages.value = []
-      await loadMessages(activeConv.value.otherUserId)
-    }
+    const conv = await ensureConversation(qUserId)
+    openConversation(conv)
   }
   startPolling()
 })
@@ -45,13 +59,8 @@ onUnmounted(() => {
 
 watch(() => route.query.userId, async (val) => {
   if (val && String(activeConv.value?.otherUserId) !== val) {
-    const conv = conversations.value.find(c => String(c.otherUserId) === val)
-    if (conv) openConversation(conv)
-    else {
-      activeConv.value = { otherUserId: val, otherUsername: '用户' }
-      messages.value = []
-      await loadMessages(activeConv.value.otherUserId)
-    }
+    const conv = await ensureConversation(val)
+    openConversation(conv)
   }
 })
 

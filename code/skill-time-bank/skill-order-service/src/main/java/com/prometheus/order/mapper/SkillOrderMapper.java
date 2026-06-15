@@ -76,4 +76,21 @@ public interface SkillOrderMapper extends BaseMapper<SkillOrder> {
             "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>" +
             "</script>")
     List<SkillOrder> selectBatchIdsWithDetails(@Param("ids") List<Long> ids);
+
+    @Select("<script>" +
+            "SELECT o.*, " +
+            "bu.username AS buyer_name, bu.avatar AS buyer_avatar, " +
+            "su.username AS seller_name, su.avatar AS seller_avatar, " +
+            "s.title AS skill_name, " +
+            "b.title AS bounty_title " +
+            "FROM skill_order o " +
+            "LEFT JOIN user bu ON o.buyer_id = bu.id " +
+            "LEFT JOIN user su ON o.seller_id = su.id " +
+            "LEFT JOIN skill s ON o.skill_id = s.id " +
+            "LEFT JOIN bounty b ON o.bounty_id = b.id " +
+            "WHERE 1=1 " +
+            "<if test='status != null'>AND o.status = #{status}</if> " +
+            "ORDER BY o.create_time DESC" +
+            "</script>")
+    List<SkillOrder> selectListWithDetails(@Param("status") Integer status);
 }

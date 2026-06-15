@@ -35,7 +35,7 @@ public interface BountyMapper extends BaseMapper<Bounty> {
             "    <if test='type == \"complete\"'>AND b.status = 3 AND (b.user_id = #{userId} OR b.applicant_id = #{userId})</if>" +
             "    <if test='type == \"apply\"'>AND b.id IN (SELECT ba.bounty_id FROM bounty_application ba WHERE ba.applicant_id = #{userId} AND ba.status = 1)</if>" +
             "  </when>" +
-            "  <otherwise>AND b.status NOT IN (0, 3, 4)</otherwise>" +
+            "  <otherwise>AND b.status = 1</otherwise>" +
             "</choose>" +
             "<if test='status != null'>AND b.status = #{status}</if>" +
             "<if test='categoryId != null and categoryId != 0'>AND b.category_id = #{categoryId}</if>" +
